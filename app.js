@@ -1101,141 +1101,106 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChatsList();
 });
 // =========================================================
-// 🎨 سیستم جدید Agnes AI (تولید تصویر) - اضافه شده به آخر فایل
+// 🎨 دکمه هوشمند Agnes AI (بدون دستکاری کدهای قبلی)
 // =========================================================
-(function() {
-  let agnesMode = false;
+window.addEventListener('DOMContentLoaded', () => {
+  let isAgnesMode = false;
 
-  // تابع درخواست عکس به بک‌اند
-  async function generateAgnesImage(prompt, bubble) {
-    try {
-      bubble.innerHTML = `<div class="notice-bubble" style="padding:10px; background:#f0f4f9; border-radius:10px; color:#1a73e8;"><i class="fa-solid fa-spinner fa-spin"></i> در حال تولید تصویر با Agnes AI... لطفاً شکیبا باشید. 🎨</div>`;
-      
-      const res = await fetch('/api/agnes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      });
-      
-      const data = await res.json();
-      if (data.error) {
-        bubble.innerHTML = `<div style="color:red; padding:10px;"><i class="fa-solid fa-circle-exclamation"></i> ${data.error}</div>`;
-        return;
-      }
+  // ۱. ساخت دکمه سوئیچ و افزودن به کنار دکمه ارسال
+  const sendBtn = document.getElementById('send-btn');
+  const promptInput = document.getElementById('prompt-input');
+  
+  if (!sendBtn || !promptInput) return;
 
-      let imgUrl = '';
-      if (data.data && data.data[0]) {
-        imgUrl = data.data[0].b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : data.data[0].url;
-      }
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.id = 'agnes-toggle-btn';
+  toggleBtn.innerHTML = '💬 چت عادی';
+  toggleBtn.style.cssText = `
+    margin-left: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s;
+  `;
 
-      if (imgUrl) {
-        bubble.innerHTML = `<img src="${imgUrl}" alt="Agnes AI Image" style="max-width:100%; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">`;
-      } else {
-        bubble.innerHTML = `<div style="color:red; padding:10px;">تصویری از سرور دریافت نشد.</div>`;
-      }
-    } catch (err) {
-      bubble.innerHTML = `<div style="color:red; padding:10px;">خطا در ارتباط: ${err.message}</div>`;
+  // افزودن دکمه به کنار دکمه ارسال
+  sendBtn.parentNode.insertBefore(toggleBtn, sendBtn);
+
+  // تغییر حالت با کلیک روی دکمه
+  toggleBtn.addEventListener('click', () => {
+    isAgnesMode = !isAgnesMode;
+    if (isAgnesMode) {
+      toggleBtn.innerHTML = '🎨 حالت عکس (فعال)';
+      toggleBtn.style.background = '#feefc3';
+      toggleBtn.style.borderColor = '#f9ab00';
+      promptInput.placeholder = 'توضیحات عکس مورد نظرت رو بنویس...';
+    } else {
+      toggleBtn.innerHTML = '💬 چت عادی';
+      toggleBtn.style.background = '#f0f0f0';
+      toggleBtn.style.borderColor = '#ccc';
+      promptInput.placeholder = 'پیامی بنویسید...';
     }
-  }
+  });
 
-  // شنود کلیک روی دکمه ارسال (با اولویت بالا)
-  document.addEventListener('click', async function(e) {
-    const sendBtn = document.getElementById('send-btn');
-    if (!sendBtn || (!sendBtn.contains(e.target) && e.target !== sendBtn)) return;
+  // ۲. مدیریت ارسال پیام وقتی در حالت عکس هستیم
+  sendBtn.addEventListener('click', async (e) => {
+    if (!isAgnesMode) return; // اگر حالت عکس نبود، کدهای قبلی خودت اجرا می‌شن
 
-    const promptInput = document.getElementById('prompt-input');
-    if (!promptInput) return;
+    // اگر حالت عکس فعال بود، جلوی ارسال به Gemini رو می‌گیریم
+    e.stopImmediatePropagation();
+    e.preventDefault();
 
     const text = promptInput.value.trim();
-    const textClean = text.toLowerCase();
+    if (!text) return;
+
     const msgList = document.getElementById('messages-list');
     const welcome = document.getElementById('welcome-container');
 
-    // ۱. ورود به حالت تولید عکس
-    if (!agnesMode && (textClean === 'تولید عکس' || textClean === 'ساخت عکس' || textClean === 'تولید تصویر')) {
-      e.stopImmediatePropagation(); // جلوگیری از اجرای کدهای قبلی
-      e.preventDefault();
-      
-      agnesMode = true;
-      promptInput.value = '';
-      if (welcome) welcome.style.display = 'none';
-      if (msgList) {
-        msgList.style.display = 'flex';
-        msgList.innerHTML += `
-          <div class="message user-message"><span>${text}</span></div>
-          <div class="notice-message" style="margin:10px 0; text-align:center;">
-            <div style="background:#e8f0fe; color:#1967d2; padding:10px 15px; border-radius:12px; display:inline-block; font-size:14px;">
-              🎨 <b>حالت تولید تصویر Agnes AI فعال شد!</b><br>هر توصیفی بفرستید تصویر آن ساخته می‌شود.<br>برای خروج کلمه <b>«خروج»</b> را ارسال کنید.
-            </div>
-          </div>`;
-        msgList.scrollTop = msgList.scrollHeight;
-      }
-      return;
+    if (welcome) welcome.style.display = 'none';
+    if (msgList) msgList.style.display = 'flex';
+
+    // نمایش پیام کاربر
+    if (msgList) {
+      msgList.innerHTML += `<div class="message user-message"><span>${text}</span></div>`;
+    }
+    promptInput.value = '';
+
+    // ساخت پیام در حال بارگذاری
+    const assistantMsg = document.createElement('div');
+    assistantMsg.className = 'message assistant-message';
+    assistantMsg.innerHTML = `<div class="bubble" style="background:#f0f4f9; padding:10px; border-radius:10px;"><i class="fa-solid fa-spinner fa-spin"></i> در حال ساخت تصویر با Agnes AI... 🎨</div>`;
+    if (msgList) {
+      msgList.appendChild(assistantMsg);
+      msgList.scrollTop = msgList.scrollHeight;
     }
 
-    // ۲. خروج از حالت عکس
-    if (agnesMode && (textClean === 'خروج' || textClean === 'exit')) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      
-      agnesMode = false;
-      promptInput.value = '';
-      if (msgList) {
-        msgList.innerHTML += `
-          <div class="message user-message"><span>${text}</span></div>
-          <div class="notice-message" style="margin:10px 0; text-align:center;">
-            <div style="background:#e6f4ea; color:#137333; padding:10px 15px; border-radius:12px; display:inline-block; font-size:14px;">
-              ✅ <b>از حالت تولید تصویر خارج شدید.</b> چت به حالت متنی معمولی برگشت.
-            </div>
-          </div>`;
-        msgList.scrollTop = msgList.scrollHeight;
-      }
-      return;
-    }
+    // ارسال به ای پی آی
+    try {
+      const res = await fetch('/api/agnes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text }),
+      });
+      const data = await res.json();
 
-    // ۳. تولید عکس در حالت Agnes Mode
-    if (agnesMode && text) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      
-      promptInput.value = '';
-      if (msgList) {
-        // پیام کاربر
-        const userMsg = document.createElement('div');
-        userMsg.className = 'message user-message';
-        userMsg.innerHTML = `<span>${text}</span>`;
-        msgList.appendChild(userMsg);
-
-        // پیام هوش مصنوعی (حالت در حال ساخت)
-        const assistantMsg = document.createElement('div');
-        assistantMsg.className = 'message assistant-message';
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        assistantMsg.appendChild(bubble);
-        msgList.appendChild(assistantMsg);
-        msgList.scrollTop = msgList.scrollHeight;
-
-        await generateAgnesImage(text, bubble);
-        msgList.scrollTop = msgList.scrollHeight;
-      }
-    }
-  }, true); // فاز Capture برای اولویت بالاتر
-
-  // شنود کلید Enter
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      const promptInput = document.getElementById('prompt-input');
-      if (document.activeElement === promptInput) {
-        const text = promptInput.value.trim().toLowerCase();
-        if (agnesMode || text === 'تولید عکس' || text === 'ساخت عکس' || text === 'تولید تصویر') {
-          const sendBtn = document.getElementById('send-btn');
-          if (sendBtn) {
-            sendBtn.click();
-            e.stopImmediatePropagation();
-            e.preventDefault();
-          }
+      if (data.error) {
+        assistantMsg.querySelector('.bubble').innerHTML = `<span style="color:red;">❌ خطا: ${data.error}</span>`;
+      } else {
+        let imgUrl = data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : data.data?.[0]?.url;
+        if (imgUrl) {
+          assistantMsg.querySelector('.bubble').innerHTML = `<img src="${imgUrl}" style="max-width:100%; border-radius:12px;">`;
+        } else {
+          assistantMsg.querySelector('.bubble').innerHTML = `<span style="color:red;">تصویری دریافت نشد.</span>`;
         }
       }
+    } catch (err) {
+      assistantMsg.querySelector('.bubble').innerHTML = `<span style="color:red;">خطا در ارتباط: ${err.message}</span>`;
     }
+
+    if (msgList) msgList.scrollTop = msgList.scrollHeight;
   }, true);
-})();
+});
