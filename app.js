@@ -1101,13 +1101,14 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChatsList();
 });
 // =========================================================
-// 🎨 افزودنی Agnes AI (چسباندن به انتهای فایل app.js)
+// 🎨 افزودنی Agnes AI (نسخه اصلاح‌شده و هوشمند)
 // =========================================================
 (function () {
   let isAgnesMode = false;
 
   function initAgnesAddon() {
     const leftActions = document.querySelector('.input-left-actions');
+    const fileUploadBtn = document.getElementById('fileUploadBtn');
     const sendBtn = document.getElementById('sendBtn');
     const promptInput = document.getElementById('promptInput');
     const messagesList = document.getElementById('messagesList');
@@ -1115,18 +1116,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!leftActions || !sendBtn || !promptInput) return;
 
-    // ۱. ساخت دکمه جادویی عصا (✨) کنار دکمه آپلود فایل
+    // ۱. جلوگیری از شکستن خط دکمه‌ها
+    leftActions.style.display = 'flex';
+    leftActions.style.alignItems = 'center';
+    leftActions.style.flexWrap = 'nowrap';
+
+    // ۲. ساخت دکمه جادویی (✨)
     const agnesBtn = document.createElement('button');
     agnesBtn.type = 'button';
     agnesBtn.id = 'agnesToggleBtn';
     agnesBtn.className = 'input-action-btn';
     agnesBtn.title = 'تولید تصویر با Agnes AI';
     agnesBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
-    agnesBtn.style.cssText = 'transition: all 0.2s ease; margin-left: 4px; cursor: pointer;';
-    
-    leftActions.appendChild(agnesBtn);
+    agnesBtn.style.cssText = 'transition: all 0.2s ease; margin-left: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;';
 
-    // ۲. تغییر حالت با کلیک روی دکمه عصا
+    // قرار دادن دکمه سمت راستِ گیره کاغذ (در قالب RTL)
+    if (fileUploadBtn) {
+      leftActions.insertBefore(agnesBtn, fileUploadBtn);
+    } else {
+      leftActions.appendChild(agnesBtn);
+    }
+
+    // ۳. تغییر حالت با کلیک روی دکمه عصا
     agnesBtn.addEventListener('click', () => {
       isAgnesMode = !isAgnesMode;
       if (isAgnesMode) {
@@ -1140,13 +1151,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // ۳. مدیریت ارسال درخواست در حالت ساخت عکس
-    sendBtn.addEventListener('click', async (e) => {
-      if (!isAgnesMode) return; // اگر حالت عکس نبود، کدهای قبلی خودت اجرا میشن
-
-      e.stopImmediatePropagation();
-      e.preventDefault();
-
+    // تابع ارسال درخواست به Agnes AI
+    async function sendAgnesRequest() {
       const text = promptInput.value.trim();
       if (!text) return;
 
@@ -1202,6 +1208,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    // ۴. جلوداری کلیک دکمه ارسال (قبل از Gemini)
+    sendBtn.addEventListener('click', (e) => {
+      if (!isAgnesMode) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      sendAgnesRequest();
+    }, true);
+
+    // ۵. جلوداری کلید Enter روی کیبورد (قبل از Gemini)
+    promptInput.addEventListener('keydown', (e) => {
+      if (!isAgnesMode) return;
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        sendAgnesRequest();
+      }
     }, true);
   }
 
