@@ -1101,106 +1101,134 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChatsList();
 });
 // =========================================================
-// 🎨 دکمه هوشمند Agnes AI (بدون دستکاری کدهای قبلی)
+// 🎨 سیستم هوشمند تولید تصویر Agnes AI (چسبانده‌شده به آخر app.js)
 // =========================================================
-window.addEventListener('DOMContentLoaded', () => {
+(function () {
   let isAgnesMode = false;
 
-  // ۱. ساخت دکمه سوئیچ و افزودن به کنار دکمه ارسال
-  const sendBtn = document.getElementById('send-btn');
-  const promptInput = document.getElementById('prompt-input');
-  
-  if (!sendBtn || !promptInput) return;
+  function initAgnesUI() {
+    const sendBtn = document.getElementById('send-btn');
+    const promptInput = document.getElementById('prompt-input');
 
-  const toggleBtn = document.createElement('button');
-  toggleBtn.type = 'button';
-  toggleBtn.id = 'agnes-toggle-btn';
-  toggleBtn.innerHTML = '💬 چت عادی';
-  toggleBtn.style.cssText = `
-    margin-left: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    background: #f0f0f0;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.3s;
-  `;
+    if (!sendBtn || !promptInput) return;
 
-  // افزودن دکمه به کنار دکمه ارسال
-  sendBtn.parentNode.insertBefore(toggleBtn, sendBtn);
+    // ۱. ساخت دکمه سوئیچ در صورتی که وجود نداشته باشه
+    if (!document.getElementById('agnes-toggle-btn')) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.id = 'agnes-toggle-btn';
+      toggleBtn.innerHTML = '💬 چت متنی';
+      toggleBtn.style.cssText = `
+        margin-left: 8px;
+        margin-right: 8px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid #d1d5db;
+        background: #f3f4f6;
+        color: #374151;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: bold;
+        transition: all 0.2s ease;
+      `;
 
-  // تغییر حالت با کلیک روی دکمه
-  toggleBtn.addEventListener('click', () => {
-    isAgnesMode = !isAgnesMode;
-    if (isAgnesMode) {
-      toggleBtn.innerHTML = '🎨 حالت عکس (فعال)';
-      toggleBtn.style.background = '#feefc3';
-      toggleBtn.style.borderColor = '#f9ab00';
-      promptInput.placeholder = 'توضیحات عکس مورد نظرت رو بنویس...';
-    } else {
-      toggleBtn.innerHTML = '💬 چت عادی';
-      toggleBtn.style.background = '#f0f0f0';
-      toggleBtn.style.borderColor = '#ccc';
-      promptInput.placeholder = 'پیامی بنویسید...';
-    }
-  });
+      // قرار دادن دکمه کنار دکمه ارسال
+      sendBtn.parentNode.insertBefore(toggleBtn, sendBtn);
 
-  // ۲. مدیریت ارسال پیام وقتی در حالت عکس هستیم
-  sendBtn.addEventListener('click', async (e) => {
-    if (!isAgnesMode) return; // اگر حالت عکس نبود، کدهای قبلی خودت اجرا می‌شن
-
-    // اگر حالت عکس فعال بود، جلوی ارسال به Gemini رو می‌گیریم
-    e.stopImmediatePropagation();
-    e.preventDefault();
-
-    const text = promptInput.value.trim();
-    if (!text) return;
-
-    const msgList = document.getElementById('messages-list');
-    const welcome = document.getElementById('welcome-container');
-
-    if (welcome) welcome.style.display = 'none';
-    if (msgList) msgList.style.display = 'flex';
-
-    // نمایش پیام کاربر
-    if (msgList) {
-      msgList.innerHTML += `<div class="message user-message"><span>${text}</span></div>`;
-    }
-    promptInput.value = '';
-
-    // ساخت پیام در حال بارگذاری
-    const assistantMsg = document.createElement('div');
-    assistantMsg.className = 'message assistant-message';
-    assistantMsg.innerHTML = `<div class="bubble" style="background:#f0f4f9; padding:10px; border-radius:10px;"><i class="fa-solid fa-spinner fa-spin"></i> در حال ساخت تصویر با Agnes AI... 🎨</div>`;
-    if (msgList) {
-      msgList.appendChild(assistantMsg);
-      msgList.scrollTop = msgList.scrollHeight;
-    }
-
-    // ارسال به ای پی آی
-    try {
-      const res = await fetch('/api/agnes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: text }),
-      });
-      const data = await res.json();
-
-      if (data.error) {
-        assistantMsg.querySelector('.bubble').innerHTML = `<span style="color:red;">❌ خطا: ${data.error}</span>`;
-      } else {
-        let imgUrl = data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : data.data?.[0]?.url;
-        if (imgUrl) {
-          assistantMsg.querySelector('.bubble').innerHTML = `<img src="${imgUrl}" style="max-width:100%; border-radius:12px;">`;
+      // تغییر وضعیت با کلیک روی دکمه
+      toggleBtn.addEventListener('click', () => {
+        isAgnesMode = !isAgnesMode;
+        if (isAgnesMode) {
+          toggleBtn.innerHTML = '🎨 حالت تولید عکس (فعال)';
+          toggleBtn.style.background = '#fef3c7';
+          toggleBtn.style.borderColor = '#f59e0b';
+          toggleBtn.style.color = '#92400e';
+          promptInput.placeholder = 'توضیحات تصاویری که می‌خواهی بسازی را بنویس...';
         } else {
-          assistantMsg.querySelector('.bubble').innerHTML = `<span style="color:red;">تصویری دریافت نشد.</span>`;
+          toggleBtn.innerHTML = '💬 چت متنی';
+          toggleBtn.style.background = '#f3f4f6';
+          toggleBtn.style.borderColor = '#d1d5db';
+          toggleBtn.style.color = '#374151';
+          promptInput.placeholder = 'پیامی بنویسید...';
         }
-      }
-    } catch (err) {
-      assistantMsg.querySelector('.bubble').innerHTML = `<span style="color:red;">خطا در ارتباط: ${err.message}</span>`;
+      });
     }
 
-    if (msgList) msgList.scrollTop = msgList.scrollHeight;
-  }, true);
-});
+    // ۲. مدیریت ارسال پیام فقط زمانی که حالت عکس فعال است
+    sendBtn.addEventListener('click', async (e) => {
+      if (!isAgnesMode) return; // اگر حالت چت عادی بود، بگذار کدهای ۱۰۰۰ خطی قبلی کار کنند
+
+      // متوقف کردن بقیه کدهای چت عادی
+      e.stopImmediatePropagation();
+      e.preventDefault();
+
+      const text = promptInput.value.trim();
+      if (!text) return;
+
+      const msgList = document.getElementById('messages-list');
+      const welcome = document.getElementById('welcome-container');
+
+      if (welcome) welcome.style.display = 'none';
+      if (msgList) msgList.style.display = 'flex';
+
+      // نمایش پیام کاربر
+      if (msgList) {
+        const uMsg = document.createElement('div');
+        uMsg.className = 'message user-message';
+        uMsg.innerHTML = `<span>${text}</span>`;
+        msgList.appendChild(uMsg);
+      }
+
+      promptInput.value = '';
+
+      // پیام در حال بارگذاری
+      const aMsg = document.createElement('div');
+      aMsg.className = 'message assistant-message';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> رفیق کمی صبر کن، دارم عکست رو با Agnes AI می‌سازم... 🎨`;
+      aMsg.appendChild(bubble);
+
+      if (msgList) {
+        msgList.appendChild(aMsg);
+        msgList.scrollTop = msgList.scrollHeight;
+      }
+
+      // ارسال درخواست به ای‌پی‌آی کلودفلر
+      try {
+        const res = await fetch('/api/agnes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: text }),
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+          bubble.innerHTML = `<span style="color:#dc2626;">❌ خطا: ${data.error}</span>`;
+        } else {
+          let imgUrl = '';
+          if (data.data && data.data[0]) {
+            imgUrl = data.data[0].b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : data.data[0].url;
+          }
+
+          if (imgUrl) {
+            bubble.innerHTML = `<img src="${imgUrl}" alt="Agnes AI Image" style="max-width:100%; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">`;
+          } else {
+            bubble.innerHTML = `<span style="color:#dc2626;">تصویری از سرور دریافت نشد.</span>`;
+          }
+        }
+      } catch (err) {
+        bubble.innerHTML = `<span style="color:#dc2626;">خطا در ارتباط: ${err.message}</span>`;
+      }
+
+      if (msgList) msgList.scrollTop = msgList.scrollHeight;
+    }, true);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAgnesUI);
+  } else {
+    initAgnesUI();
+  }
+})();
