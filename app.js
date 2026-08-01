@@ -1101,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChatsList();
 });
 // =========================================================
-// 🎨 افزودنی Agnes AI (نسخه اصلاح‌شده و هوشمند)
+// 🎨 افزودنی Agnes AI (نسخه هوشمند و رفع خطای [object Object])
 // =========================================================
 (function () {
   let isAgnesMode = false;
@@ -1116,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!leftActions || !sendBtn || !promptInput) return;
 
-    // ۱. جلوگیری از شکستن خط دکمه‌ها
+    // ۱. تنظیم چیدمان دکمه‌ها
     leftActions.style.display = 'flex';
     leftActions.style.alignItems = 'center';
     leftActions.style.flexWrap = 'nowrap';
@@ -1130,14 +1130,13 @@ document.addEventListener('DOMContentLoaded', () => {
     agnesBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
     agnesBtn.style.cssText = 'transition: all 0.2s ease; margin-left: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;';
 
-    // قرار دادن دکمه سمت راستِ گیره کاغذ (در قالب RTL)
     if (fileUploadBtn) {
       leftActions.insertBefore(agnesBtn, fileUploadBtn);
     } else {
       leftActions.appendChild(agnesBtn);
     }
 
-    // ۳. تغییر حالت با کلیک روی دکمه عصا
+    // ۳. سوییچ بین حالت متنی و تصویر
     agnesBtn.addEventListener('click', () => {
       isAgnesMode = !isAgnesMode;
       if (isAgnesMode) {
@@ -1151,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // تابع ارسال درخواست به Agnes AI
+    // ۴. ارسال درخواست به Agnes API
     async function sendAgnesRequest() {
       const text = promptInput.value.trim();
       if (!text) return;
@@ -1159,7 +1158,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (welcomeContainer) welcomeContainer.style.display = 'none';
       if (messagesList) messagesList.style.display = 'flex';
 
-      // نمایش پیام کاربر
       const uRow = document.createElement('div');
       uRow.className = 'message-row user';
       uRow.innerHTML = `
@@ -1169,7 +1167,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       promptInput.value = '';
 
-      // پیام در حال ساخت تصویر
       const aRow = document.createElement('div');
       aRow.className = 'message-row assistant';
       aRow.innerHTML = `
@@ -1191,10 +1188,16 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ prompt: text }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: `پاسخ نا معتبر از سرور (کد status: ${res.status})` }));
 
-        if (data.error) {
-          bubble.innerHTML = `<span style="color:#ef4444;">❌ خطا: ${data.error}</span>`;
+        if (!res.ok || data.error) {
+          let errText = 'خطای ناشناخته در سرور';
+          if (data.error) {
+            errText = typeof data.error === 'object' 
+              ? (data.error.message || JSON.stringify(data.error)) 
+              : data.error;
+          }
+          bubble.innerHTML = `<span style="color:#ef4444;">❌ خطا: ${errText}</span>`;
         } else {
           let imgUrl = data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : data.data?.[0]?.url;
           if (imgUrl) {
@@ -1204,13 +1207,13 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       } catch (err) {
-        bubble.innerHTML = `<span style="color:#ef4444;">خطا در ارتباط: ${err.message}</span>`;
+        bubble.innerHTML = `<span style="color:#ef4444;">خطا در ارتباط با سرور: ${err.message}</span>`;
       }
 
       messagesList.scrollTop = messagesList.scrollHeight;
     }
 
-    // ۴. جلوداری کلیک دکمه ارسال (قبل از Gemini)
+    // ۵. شکار رویداد کلیک
     sendBtn.addEventListener('click', (e) => {
       if (!isAgnesMode) return;
       e.stopImmediatePropagation();
@@ -1218,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sendAgnesRequest();
     }, true);
 
-    // ۵. جلوداری کلید Enter روی کیبورد (قبل از Gemini)
+    // ۶. شکار کلید Enter کیبورد
     promptInput.addEventListener('keydown', (e) => {
       if (!isAgnesMode) return;
       if (e.key === 'Enter' && !e.shiftKey) {
