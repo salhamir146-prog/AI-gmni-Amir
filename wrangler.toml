@@ -1,0 +1,3 @@
+name = "ai-gmni-amir"
+main = "functions/api/chat.js" # یا مسیر فایل اصلی بک‌اندت (مثل src/index.js)
+compatibility_date = "2026-08-01"
