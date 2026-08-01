@@ -866,9 +866,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const { bubble, wrapper } = appendAssistantTyping();
 
     try {
-      // ---> اصلاح شرط‌ها برای پشتیبانی کامل از حالت تصویر (Agnes)
+      // ---> اصلاح کلیدی: اگر مدل imagenes است، همه چیز را به Agnes بفرست
       if (targetModel.category === 'imagen') {
-        // اگر مدل imagenes است، همه چیز را به Agnes بفرست (چه عکس باشد، چه متن عادی مثل "سگ")
         await handleImagenGenerate(targetModel, text || displayText, bubble, wrapper);
       } else if (targetModel.category === 'text' || targetModel.category === 'gemini-image') {
         await handleGeminiGenerate(targetModel, bubble, wrapper);
@@ -946,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const predictions = data.data || [];
     
     if (predictions.length === 0) {
-      // اگر درخواست متنی بود اما مدل imagenes است، باید برگرداند که پاسخی ندارد
+      // اگر درخواست متنی بود اما مدل imagenes است
       bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-circle-info"></i> در حالت تولید تصویر (Imagen) هستید. مدل‌های تصویری نمی‌توانند به سوالات متنی پاسخ دهند. برای بازگشت به چت، کلمه "خروج" را بفرستید.</div>`;
       conversationHistory.push({ role: 'model', parts: [{ text: '[در حالت تصویر] مدل قادر به پاسخ متنی نیست. "خروج" را بفرستید.' }] });
       return;
