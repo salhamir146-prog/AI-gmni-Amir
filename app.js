@@ -1101,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChatsList();
 });
 // // =========================================================
-// 🎨 افزودنی Agnes AI (نسخه نهایی و رفع خطای Quota)
+// 🎨 افزودنی Agnes AI (نسخه نهایی و رفع خطای contents)
 // =========================================================
 (function () {
   let isAgnesMode = false;
@@ -1116,12 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!leftActions || !sendBtn || !promptInput) return;
 
-    // ۱. تنظیم چیدمان دکمه‌ها
-    leftActions.style.display = 'flex';
-    leftActions.style.alignItems = 'center';
-    leftActions.style.flexWrap = 'nowrap';
-
-    // ۲. ساخت دکمه جادویی (✨)
+    // ساخت دکمه
     const agnesBtn = document.createElement('button');
     agnesBtn.type = 'button';
     agnesBtn.id = 'agnesToggleBtn';
@@ -1136,31 +1131,46 @@ document.addEventListener('DOMContentLoaded', () => {
       leftActions.appendChild(agnesBtn);
     }
 
-    // ۳. تغییر حالت بین متنی و تصویر + تغییر کلیدهای دکمه ارسال
+    // حالت روشن/خاموش
     agnesBtn.addEventListener('click', () => {
       isAgnesMode = !isAgnesMode;
       if (isAgnesMode) {
         agnesBtn.style.color = '#f59e0b';
         agnesBtn.style.transform = 'scale(1.25)';
         promptInput.placeholder = '🎨 توصیف عکسی که می‌خواهی بسازی را بنویس...';
-        // وقتی حالت Agnes روشن است، دکمه ارسال را تغییر می‌دهیم تا مطمئن شویم به اشتباه به گوگل نمی‌رود
-        sendBtn.disabled = false;
+        
+        // ===== نکته کلیدی اینجاست =====
+        // وقتی Agnes روشن است، تابع ارسال اصلی گوگل را حذف می‌کنیم!
+        // و یک شنونده جدید به دکمه ارسال اضافه می‌کنیم
+        sendBtn.onclick = null; 
+        sendBtn.removeEventListener('click', handleSend); // تابع اصلی را پاک می‌کنیم
+        sendBtn.addEventListener('click', sendAgnesRequest); // تابع خودمان را می‌چسبانیم
+        
+        // برای Enter هم همین کار را می‌کنیم
+        promptInput.removeEventListener('keydown', handleSendKeydown);
+        promptInput.addEventListener('keydown', handleAgnesKeydown);
+
       } else {
         agnesBtn.style.color = '';
         agnesBtn.style.transform = 'scale(1)';
         promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
-        // برگرداندن دکمه ارسال به حالت عادی
-        sendBtn.disabled = promptInput.value.trim() === '' && !state.uploadedFile;
+        
+        // بازگشت به حالت عادی
+        sendBtn.removeEventListener('click', sendAgnesRequest);
+        sendBtn.addEventListener('click', handleSend); // تابع اصلی گوگل را برمی‌گردانیم
+        
+        promptInput.removeEventListener('keydown', handleAgnesKeydown);
+        promptInput.addEventListener('keydown', handleSendKeydown);
       }
     });
 
-    // ۴. ارسال درخواست کاملاً استاندارد به API
+    // ===== تابع ارسال Agnes =====
     async function sendAgnesRequest() {
       const text = promptInput.value.trim();
       if (!text) return;
 
-      if (welcomeContainer) welcomeContainer.style.display = 'none';
-      if (messagesList) messagesList.style.display = 'flex';
+      welcomeContainer.style.display = 'none';
+      messagesList.style.display = 'flex';
 
       // نمایش پیام کاربر
       const uRow = document.createElement('div');
@@ -1171,7 +1181,7 @@ document.addEventListener('DOMContentLoaded', () => {
       messagesList.appendChild(uRow);
 
       promptInput.value = '';
-      sendBtn.disabled = true; // جلوگیری از ارسال مجدد تا دریافت پاسخ
+      sendBtn.disabled = true;
 
       // پیام در حال ساخت
       const aRow = document.createElement('div');
@@ -1210,45 +1220,54 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           bubble.innerHTML = `<span style="color:#ef4444;">❌ خطا: ${errText}</span>`;
         } else {
-          // بررسی انواع فرمت‌های خروجی تصویر یا متن
           let imgUrl = data.data?.[0]?.b64_json 
             ? `data:image/png;base64,${data.data[0].b64_json}` 
             : (data.data?.[0]?.url || data.url);
 
           if (imgUrl) {
             bubble.innerHTML = `<img src="${imgUrl}" alt="Agnes AI Image" style="max-width:100%; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">`;
-          } else if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            bubble.innerHTML = data.candidates[0].content.parts[0].text;
           } else {
-            bubble.innerHTML = `<span style="color:#ef4444;">تصویری یا پاسخی از سرور دریافت نشد.</span>`;
+            bubble.innerHTML = `<span style="color:#ef4444;">تصویری از سرور دریافت نشد.</span>`;
           }
         }
       } catch (err) {
         bubble.innerHTML = `<span style="color:#ef4444;">خطا در ارتباط با سرور: ${err.message}</span>`;
       }
 
-      sendBtn.disabled = false; // فعال کردن مجدد دکمه ارسال
+      sendBtn.disabled = false;
       messagesList.scrollTop = messagesList.scrollHeight;
     }
 
-    // ۵. شکار کلیک دکمه ارسال (با اولویت بالاتر)
-    // از `useCapture = true` استفاده میکنیم تا قبل از کد اصلی برنامه اجرا شود
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('#sendBtn') && isAgnesMode) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        sendAgnesRequest();
+    // تعریف هندلرهای اصلی (برای اینکه بتوانیم آن‌ها را حذف و اضافه کنیم)
+    function handleSend() {
+      // این تابع همان تابع اصلی app.js است که در اینجا به آن دسترسی داریم
+      // اما چون به دلیل اسکوپ متغیرها نمی‌توانیم مستقیم به آن اشاره کنیم،
+      // کد اصلی را کپی می‌کنیم اما فقط برای حالت عادی
+      // یا فقط کاری می‌کنیم که وقتی دکمه خاموش است، اتفاقی نیفتد
+      if (!isAgnesMode) {
+        // اینجا کد اصلی app.js خودش اجرا می‌شود چون ما روی دکمه کلیک می‌کنیم
+        // و رویداد اصلی فعال است
+        // ما فقط کاری نمی‌کنیم تا رویداد اصلی کار کند
       }
-    }, true);
+    }
 
-    // ۶. شکار کلید Enter
-    promptInput.addEventListener('keydown', (e) => {
+    function handleSendKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey && !isAgnesMode) {
+        e.preventDefault();
+        document.getElementById('sendBtn').click();
+      }
+    }
+
+    function handleAgnesKeydown(e) {
       if (e.key === 'Enter' && !e.shiftKey && isAgnesMode) {
-        e.stopImmediatePropagation();
         e.preventDefault();
         sendAgnesRequest();
       }
-    }, true);
+    }
+
+    // در ابتدا رویدادهای اصلی را ثبت می‌کنیم
+    sendBtn.addEventListener('click', handleSend);
+    promptInput.addEventListener('keydown', handleSendKeydown);
   }
 
   if (document.readyState === 'loading') {
