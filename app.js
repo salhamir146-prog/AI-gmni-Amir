@@ -31,8 +31,10 @@ const MODEL_CATALOG = [
   { id: 'gemini-3-pro-image-preview', name: 'Nano Banana Pro', group: '🎨 تصویر', category: 'gemini-image', desc: 'کیفیت حرفه‌ای' },
   { id: 'gemini-2.5-flash-image', name: 'Nano Banana', group: '🎨 تصویر', category: 'gemini-image', desc: 'مدل پایدار و پرسرعت' },
 
-  // ---- Image (Imagen — predict endpoint / Agnes AI) ----
-  { id: 'imagen-4.0-generate-001', name: 'Imagen 4 (Agnes)', group: '🎨 تصویر', category: 'imagen', desc: 'کیفیت بالا — متصل به Agnes AI' },
+  // ---- Image (Imagen — predict endpoint) ----
+  { id: 'imagen-4.0-generate-001', name: 'Imagen 4', group: '🎨 تصویر', category: 'imagen', desc: 'کیفیت بالا — endpoint مجزا' },
+  { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra', group: '🎨 تصویر', category: 'imagen', desc: 'بالاترین کیفیت' },
+  { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast', group: '🎨 تصویر', category: 'imagen', desc: 'سریع و مقرون‌به‌صرفه' },
 
   // ---- Audio TTS ----
   { id: 'gemini-2.5-flash-preview-tts', name: 'Gemini 2.5 Flash TTS', group: '🎵 صوتی', category: 'tts', desc: 'تبدیل متن به گفتار' },
@@ -755,37 +757,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const model = findModel(state.modelId);
 
-    // ---> تشخیص دستور خروج
-    if (text.toLowerCase().includes('خروج') || text.toLowerCase() === 'exit') {
-      state.modelId = 'gemini-3.6-flash'; // تغییر به یک مدل متنی پیش‌فرض
-      localStorage.setItem('selectedModel', state.modelId);
-      updateHeaderForModel(state.modelId);
-      appendNotice('🔁 به حالت چت متنی برگشتید.');
-      return;
-    }
-
-    // ---> تشخیص خودکار حالت تصویر
-    let targetModel = model;
-    let isImageRequest = false;
-
-    // اگر دستور "عکس" یا "تصویر" یا "نقاشی" یا "بساز" یا "تولید کن" در متن باشد، به حالت تصویر می‌رویم
-    if (text.match(/(عکس|تصویر|نقاشی|بساز|تولید کن)/i)) {
-      if (targetModel.category !== 'imagen' && targetModel.category !== 'gemini-image') {
-        // اگر مدل فعلی تصویری نیست، به صورت خودکار به Imagen تغییر می‌کنیم
-        const imagenModel = MODEL_CATALOG.find(m => m.id === 'imagen-4.0-generate-001');
-        if (imagenModel) {
-          targetModel = imagenModel;
-          isImageRequest = true;
-          state.modelId = targetModel.id;
-          localStorage.setItem('selectedModel', state.modelId);
-          updateHeaderForModel(state.modelId);
-          appendNotice(`🔄 به حالت تولید تصویر (Agnes AI) تغییر کرد.`);
-        }
-      } else {
-        isImageRequest = true;
-      }
-    }
-
     if (conversationHistory.length === 0 && !state.currentChatId) {
       state.currentChatId = 'chat_' + Date.now();
     }
@@ -834,12 +805,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadedFileCopy = state.uploadedFile;
     clearUploadedFile();
 
-    if (targetModel.category === 'unsupported') {
-      appendNotice('این مدل (' + targetModel.name + ') برای گفتگوی متنی پشتیبانی نمی‌شود.');
+    if (model.category === 'unsupported') {
+      appendNotice('این مدل (' + model.name + ') برای گفتگوی متنی پشتیبانی نمی‌شود.');
       sendBtn.disabled = false;
       return;
     }
-    if (targetModel.category === 'music') {
+    if (model.category === 'music') {
       appendNotice('مدل‌های موسیقی (Lyria) در این نسخه پشتیبانی نمی‌شوند.');
       sendBtn.disabled = false;
       return;
@@ -866,15 +837,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const { bubble, wrapper } = appendAssistantTyping();
 
     try {
-      // ---> اصلاح کلیدی: اگر مدل imagenes است، همه چیز را به Agnes بفرست
-      if (targetModel.category === 'imagen') {
-        await handleImagenGenerate(targetModel, text || displayText, bubble, wrapper);
-      } else if (targetModel.category === 'text' || targetModel.category === 'gemini-image') {
-        await handleGeminiGenerate(targetModel, bubble, wrapper);
-      } else if (targetModel.category === 'tts') {
-        await handleTtsGenerate(targetModel, text || displayText, bubble, wrapper);
-      } else if (targetModel.category === 'video') {
-        await handleVideoGenerate(targetModel, text || displayText, bubble, wrapper);
+      if (model.category === 'text' || model.category === 'gemini-image') {
+        await handleGeminiGenerate(model, bubble, wrapper);
+      } else if (model.category === 'imagen') {
+        await handleImagenGenerate(model, text || displayText, bubble, wrapper);
+      } else if (model.category === 'tts') {
+        await handleTtsGenerate(model, text || displayText, bubble, wrapper);
+      } else if (model.category === 'video') {
+        await handleVideoGenerate(model, text || displayText, bubble, wrapper);
       }
       autoSaveChat();
     } catch (err) {
@@ -927,31 +897,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ---> اصلاح تابع تولید تصویر برای Agnes
   async function handleImagenGenerate(model, prompt, bubble) {
-    const res = await fetch('/api/agnes', { 
+    const res = await fetch('/api/imagen', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        prompt: prompt, 
-        n: state.params.imagenSampleCount || 1,
-        size: '1024x1024' 
-      }),
+      body: JSON.stringify({ model: model.id, prompt, aspectRatio: state.params.imagenAspectRatio, sampleCount: state.params.imagenSampleCount }),
     });
-    
     const data = await res.json();
     if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
-    
-    // Agnes از فرمت OpenAI استفاده می‌کند
-    const predictions = data.data || [];
-    
-    if (predictions.length === 0) {
-      // اگر درخواست متنی بود اما مدل imagenes است
-      bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-circle-info"></i> در حالت تولید تصویر (Imagen) هستید. مدل‌های تصویری نمی‌توانند به سوالات متنی پاسخ دهند. برای بازگشت به چت، کلمه "خروج" را بفرستید.</div>`;
-      conversationHistory.push({ role: 'model', parts: [{ text: '[در حالت تصویر] مدل قادر به پاسخ متنی نیست. "خروج" را بفرستید.' }] });
-      return;
-    }
-    
-    bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="${p.url}" alt="تصویر تولیدشده">`).join('');
+    const predictions = data.predictions || [];
+    if (!predictions.length) return renderError(bubble, 'تصویری دریافت نشد.');
+    bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر تولیدشده">`).join('');
     conversationHistory.push({ role: 'model', parts: [{ text: '[تصویر تولید شد]' }] });
   }
 
@@ -1145,3 +1100,142 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Load saved chats on startup ----
   loadChatsList();
 });
+// =========================================================
+// 🎨 سیستم جدید Agnes AI (تولید تصویر) - اضافه شده به آخر فایل
+// =========================================================
+(function() {
+  let agnesMode = false;
+
+  // تابع درخواست عکس به بک‌اند
+  async function generateAgnesImage(prompt, bubble) {
+    try {
+      bubble.innerHTML = `<div class="notice-bubble" style="padding:10px; background:#f0f4f9; border-radius:10px; color:#1a73e8;"><i class="fa-solid fa-spinner fa-spin"></i> در حال تولید تصویر با Agnes AI... لطفاً شکیبا باشید. 🎨</div>`;
+      
+      const res = await fetch('/api/agnes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      
+      const data = await res.json();
+      if (data.error) {
+        bubble.innerHTML = `<div style="color:red; padding:10px;"><i class="fa-solid fa-circle-exclamation"></i> ${data.error}</div>`;
+        return;
+      }
+
+      let imgUrl = '';
+      if (data.data && data.data[0]) {
+        imgUrl = data.data[0].b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : data.data[0].url;
+      }
+
+      if (imgUrl) {
+        bubble.innerHTML = `<img src="${imgUrl}" alt="Agnes AI Image" style="max-width:100%; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">`;
+      } else {
+        bubble.innerHTML = `<div style="color:red; padding:10px;">تصویری از سرور دریافت نشد.</div>`;
+      }
+    } catch (err) {
+      bubble.innerHTML = `<div style="color:red; padding:10px;">خطا در ارتباط: ${err.message}</div>`;
+    }
+  }
+
+  // شنود کلیک روی دکمه ارسال (با اولویت بالا)
+  document.addEventListener('click', async function(e) {
+    const sendBtn = document.getElementById('send-btn');
+    if (!sendBtn || (!sendBtn.contains(e.target) && e.target !== sendBtn)) return;
+
+    const promptInput = document.getElementById('prompt-input');
+    if (!promptInput) return;
+
+    const text = promptInput.value.trim();
+    const textClean = text.toLowerCase();
+    const msgList = document.getElementById('messages-list');
+    const welcome = document.getElementById('welcome-container');
+
+    // ۱. ورود به حالت تولید عکس
+    if (!agnesMode && (textClean === 'تولید عکس' || textClean === 'ساخت عکس' || textClean === 'تولید تصویر')) {
+      e.stopImmediatePropagation(); // جلوگیری از اجرای کدهای قبلی
+      e.preventDefault();
+      
+      agnesMode = true;
+      promptInput.value = '';
+      if (welcome) welcome.style.display = 'none';
+      if (msgList) {
+        msgList.style.display = 'flex';
+        msgList.innerHTML += `
+          <div class="message user-message"><span>${text}</span></div>
+          <div class="notice-message" style="margin:10px 0; text-align:center;">
+            <div style="background:#e8f0fe; color:#1967d2; padding:10px 15px; border-radius:12px; display:inline-block; font-size:14px;">
+              🎨 <b>حالت تولید تصویر Agnes AI فعال شد!</b><br>هر توصیفی بفرستید تصویر آن ساخته می‌شود.<br>برای خروج کلمه <b>«خروج»</b> را ارسال کنید.
+            </div>
+          </div>`;
+        msgList.scrollTop = msgList.scrollHeight;
+      }
+      return;
+    }
+
+    // ۲. خروج از حالت عکس
+    if (agnesMode && (textClean === 'خروج' || textClean === 'exit')) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      
+      agnesMode = false;
+      promptInput.value = '';
+      if (msgList) {
+        msgList.innerHTML += `
+          <div class="message user-message"><span>${text}</span></div>
+          <div class="notice-message" style="margin:10px 0; text-align:center;">
+            <div style="background:#e6f4ea; color:#137333; padding:10px 15px; border-radius:12px; display:inline-block; font-size:14px;">
+              ✅ <b>از حالت تولید تصویر خارج شدید.</b> چت به حالت متنی معمولی برگشت.
+            </div>
+          </div>`;
+        msgList.scrollTop = msgList.scrollHeight;
+      }
+      return;
+    }
+
+    // ۳. تولید عکس در حالت Agnes Mode
+    if (agnesMode && text) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      
+      promptInput.value = '';
+      if (msgList) {
+        // پیام کاربر
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message user-message';
+        userMsg.innerHTML = `<span>${text}</span>`;
+        msgList.appendChild(userMsg);
+
+        // پیام هوش مصنوعی (حالت در حال ساخت)
+        const assistantMsg = document.createElement('div');
+        assistantMsg.className = 'message assistant-message';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        assistantMsg.appendChild(bubble);
+        msgList.appendChild(assistantMsg);
+        msgList.scrollTop = msgList.scrollHeight;
+
+        await generateAgnesImage(text, bubble);
+        msgList.scrollTop = msgList.scrollHeight;
+      }
+    }
+  }, true); // فاز Capture برای اولویت بالاتر
+
+  // شنود کلید Enter
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const promptInput = document.getElementById('prompt-input');
+      if (document.activeElement === promptInput) {
+        const text = promptInput.value.trim().toLowerCase();
+        if (agnesMode || text === 'تولید عکس' || text === 'ساخت عکس' || text === 'تولید تصویر') {
+          const sendBtn = document.getElementById('send-btn');
+          if (sendBtn) {
+            sendBtn.click();
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }
+      }
+    }
+  }, true);
+})();
