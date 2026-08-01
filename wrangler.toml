@@ -1,3 +1,8 @@
 name = "ai-gmni-amir"
-main = "functions/api/chat.js" # یا مسیر فایل اصلی بک‌اندت (مثل src/index.js)
+main = "functions/api/chat.js"
 compatibility_date = "2026-08-01"
+
+assets = "./"
+
+[[kv_namespaces]]
+binding = "USER_MEMORY"
