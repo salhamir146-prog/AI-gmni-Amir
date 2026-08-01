@@ -113,9 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const newChatBtn = $('newChatBtn');
   const saveChatBtn = $('saveChatBtn');
 
-  // File upload elements
+  // File upload elements with new design
   const fileUploadBtn = $('fileUploadBtn');
   const fileInput = $('fileInput');
+  const fileBadge = $('fileBadge');
+  const fileNameDisplay = $('fileNameDisplay');
 
   // ---- State ----
   let state = {
@@ -125,12 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
     params: JSON.parse(localStorage.getItem('genParams') || '{}'),
     memoryEnabled: localStorage.getItem('memoryEnabled') !== 'false',
     longTermMemory: '',
-    currentChatId: null, // for tracking which chat is loaded
-    uploadedFile: null, // { data: base64, mimeType, name }
+    currentChatId: null,
+    uploadedFile: null,
   };
   let conversationHistory = [];
   let pendingModelId = state.modelId;
-  let lastSavedChat = null; // to prevent duplicate saves
+  let lastSavedChat = null;
 
   // ---- Client id ----
   let clientId = localStorage.getItem('clientId');
@@ -386,16 +388,72 @@ document.addEventListener('DOMContentLoaded', () => {
   promptInput.addEventListener('input', () => {
     promptInput.style.height = 'auto';
     promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + 'px';
-    sendBtn.disabled = promptInput.value.trim() === '';
+    sendBtn.disabled = promptInput.value.trim() === '' && !state.uploadedFile;
   });
 
   // ---- Sidebar ----
   closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('closed'));
   openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('closed'));
 
-  // ---- File Upload ----
+  // ============================================================
+  // FILE UPLOAD — NEW DESIGN WITH BADGE & FILE NAME DISPLAY
+  // ============================================================
+  
+  // Clear uploaded file function
+  function clearUploadedFile() {
+    state.uploadedFile = null;
+    fileBadge.style.display = 'none';
+    if (fileNameDisplay) {
+      fileNameDisplay.style.display = 'none';
+      fileNameDisplay.innerHTML = '';
+    }
+    fileUploadBtn.classList.remove('has-file');
+    promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
+    sendBtn.disabled = promptInput.value.trim() === '';
+  }
+
+  // Update file badge
+  function updateFileBadge() {
+    if (state.uploadedFile) {
+      fileBadge.textContent = '1';
+      fileBadge.style.display = 'flex';
+      fileUploadBtn.classList.add('has-file');
+      
+      // Show file name
+      const file = state.uploadedFile;
+      const fileIcon = file.mimeType.startsWith('image/') ? 'fa-image' : 'fa-file-lines';
+      fileNameDisplay.innerHTML = `
+        <i class="fa-regular ${fileIcon} file-icon"></i>
+        <span class="file-name-text" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+        <button class="file-remove-btn" id="removeFileBtn" title="حذف فایل">
+          <i class="fa-regular fa-circle-xmark"></i>
+        </button>
+      `;
+      fileNameDisplay.style.display = 'flex';
+      
+      // Remove button handler
+      const removeBtn = document.getElementById('removeFileBtn');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          clearUploadedFile();
+        });
+      }
+      
+      promptInput.placeholder = `📎 ${file.name} — پیام خود را تایپ کنید...`;
+    } else {
+      fileBadge.style.display = 'none';
+      fileUploadBtn.classList.remove('has-file');
+      fileNameDisplay.style.display = 'none';
+      fileNameDisplay.innerHTML = '';
+      promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
+    }
+  }
+
+  // File upload button click
   fileUploadBtn.addEventListener('click', () => fileInput.click());
 
+  // File input change handler
   fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -407,6 +465,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Check if image or text file
+    const validTypes = ['image/', 'text/', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const isValid = validTypes.some(type => file.type.startsWith(type) || file.type === type);
+    
+    if (!isValid) {
+      showToast('فقط تصاویر و فایل‌های متنی پشتیبانی می‌شوند', 'error');
+      fileInput.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       const base64 = ev.target.result.split(',')[1];
@@ -414,10 +482,12 @@ document.addEventListener('DOMContentLoaded', () => {
         data: base64,
         mimeType: file.type,
         name: file.name,
+        size: file.size,
       };
-      showToast(`فایل "${file.name}" آپلود شد`, 'success');
-      // Display file name in input area
-      promptInput.placeholder = `📎 ${file.name} — پیام خود را تایپ کنید...`;
+      
+      updateFileBadge();
+      showToast(`فایل "${file.name}" آپلود شد ✅`, 'success');
+      sendBtn.disabled = false;
     };
     reader.readAsDataURL(file);
     fileInput.value = '';
@@ -484,7 +554,6 @@ document.addEventListener('DOMContentLoaded', () => {
       model: state.modelId,
     };
 
-    // Check if this chat already exists
     let chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
     const existingIndex = chats.findIndex(c => c.id === chatId);
     if (existingIndex !== -1) {
@@ -501,7 +570,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getChatTitle() {
-    // Try to get title from first user message
     const firstUser = conversationHistory.find(msg => msg.role === 'user');
     if (firstUser && firstUser.parts && firstUser.parts[0] && firstUser.parts[0].text) {
       const text = firstUser.parts[0].text;
@@ -515,7 +583,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyMsg = document.getElementById('historyEmpty');
     const chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
 
-    // Remove old items (keep empty message)
     historyList.querySelectorAll('.history-item').forEach(el => el.remove());
 
     if (chats.length === 0) {
@@ -524,7 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     emptyMsg.style.display = 'none';
 
-    // Sort by timestamp (newest first)
     chats.sort((a, b) => b.timestamp - a.timestamp);
 
     chats.forEach(chat => {
@@ -550,7 +616,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebar.classList.add('closed');
       });
 
-      // Delete button
       const deleteBtn = item.querySelector('.delete-chat-btn');
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -569,16 +634,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Clear current messages
     messagesList.innerHTML = '';
     messagesList.style.display = 'flex';
     welcomeContainer.style.display = 'none';
 
-    // Load history
     conversationHistory = chat.history || [];
     state.currentChatId = chat.id;
 
-    // Render messages
     chat.history.forEach(msg => {
       const row = document.createElement('div');
       row.className = `message-row ${msg.role === 'user' ? 'user' : 'assistant'}`;
@@ -598,7 +660,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // If model changed, update header
     if (chat.model) {
       state.modelId = chat.model;
       updateHeaderForModel(chat.model);
@@ -617,7 +678,6 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('savedChats', JSON.stringify(chats));
 
     if (state.currentChatId === chatId) {
-      // If current chat is deleted, clear the view
       state.currentChatId = null;
       conversationHistory = [];
       messagesList.innerHTML = '';
@@ -630,14 +690,12 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('چت حذف شد', 'success');
   }
 
-  // ---- Auto-save after each conversation ----
   function autoSaveChat() {
     if (conversationHistory.length === 0) return;
 
     const currentData = JSON.stringify(conversationHistory);
-    if (currentData === lastSavedChat) return; // already saved
+    if (currentData === lastSavedChat) return;
 
-    // Save with a new ID if no current chat
     if (!state.currentChatId) {
       state.currentChatId = 'chat_' + Date.now();
     }
@@ -673,8 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesList.style.display = 'none';
     welcomeContainer.style.display = 'flex';
     welcomeContainer.style.flexDirection = 'column';
-    state.uploadedFile = null;
-    promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
+    clearUploadedFile();
     loadChatsList();
     sidebar.classList.add('closed');
   });
@@ -686,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
   promptInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (promptInput.value.trim() !== '') handleSend();
+      if (promptInput.value.trim() !== '' || state.uploadedFile) handleSend();
     }
   });
   sendBtn.addEventListener('click', handleSend);
@@ -700,7 +757,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const model = findModel(state.modelId);
 
-    // If no conversation history and no current chat ID, create one
     if (conversationHistory.length === 0 && !state.currentChatId) {
       state.currentChatId = 'chat_' + Date.now();
     }
@@ -708,14 +764,13 @@ document.addEventListener('DOMContentLoaded', () => {
     welcomeContainer.style.display = 'none';
     messagesList.style.display = 'flex';
 
-    // Prepare user message with file if exists
+    // Prepare user message
     let userParts = [];
     let displayText = text || '';
 
     if (state.uploadedFile) {
       const file = state.uploadedFile;
       if (file.mimeType.startsWith('image/')) {
-        // For images, show the image in chat
         displayText = text || `[تصویر: ${file.name}]`;
         userParts.push({
           inlineData: {
@@ -724,40 +779,31 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
       } else {
-        // For text files, read as text (but we already have base64)
-        displayText = text ? `${text}\n\n[فایل: ${file.name}]` : `[فایل: ${file.name}]`;
-        // Try to decode as text for context
+        displayText = text ? `${text}\n\n📎 [فایل: ${file.name}]` : `📎 [فایل: ${file.name}]`;
         try {
           const decoded = atob(file.data);
           displayText += `\n\n--- محتوای فایل ---\n${decoded.substring(0, 4000)}${decoded.length > 4000 ? '...' : ''}`;
         } catch (e) {
-          // Binary file, just show name
+          // Binary file
         }
       }
     }
 
-    // Add text part
     if (text) {
       userParts.push({ text: text });
     } else if (userParts.length === 0) {
       userParts.push({ text: displayText });
     }
 
-    // If we have an image and the model supports it, use inlineData
-    if (state.uploadedFile && state.uploadedFile.mimeType.startsWith('image/')) {
-      // For gemini-image models, keep as inlineData
-      // For text models, we'll send as text
-    }
-
+    // Show user message
     appendUserMessage(displayText, state.uploadedFile);
     promptInput.value = '';
     promptInput.style.height = 'auto';
-    promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
     sendBtn.disabled = true;
 
-    // Clear uploaded file after sending
+    // Save file before clearing
     const uploadedFileCopy = state.uploadedFile;
-    state.uploadedFile = null;
+    clearUploadedFile();
 
     if (model.category === 'unsupported') {
       appendNotice('این مدل (' + model.name + ') برای گفتگوی متنی پشتیبانی نمی‌شود.');
@@ -773,7 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Build conversation entry
     const userEntry = { role: 'user', parts: [] };
     if (uploadedFileCopy && uploadedFileCopy.mimeType.startsWith('image/')) {
-      // For image models, send inlineData
       userEntry.parts.push({
         inlineData: {
           mimeType: uploadedFileCopy.mimeType,
@@ -801,7 +846,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (model.category === 'video') {
         await handleVideoGenerate(model, text || displayText, bubble, wrapper);
       }
-      // Auto-save after successful response
       autoSaveChat();
     } catch (err) {
       renderError(bubble, 'خطا در ارتباط با سرور: ' + err.message);
@@ -811,7 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendBtn.disabled = false;
   }
 
-  // ---- API Handlers (same as before) ----
+  // ---- API Handlers ----
   async function handleGeminiGenerate(model, bubble) {
     const body = {
       model: model.id,
@@ -1055,7 +1099,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- Load saved chats on startup ----
   loadChatsList();
-
-  // ---- Save chat when switching to new chat ----
-  // If user starts typing in a new chat, auto-save will handle it
 });
