@@ -1101,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChatsList();
 });
 // =========================================================
-// 🎨 افزودنی Agnes AI (نسخه هوشمند و رفع خطای [object Object])
+// 🎨 افزودنی Agnes AI (نسخه نهایی و رفع خطای contents)
 // =========================================================
 (function () {
   let isAgnesMode = false;
@@ -1136,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
       leftActions.appendChild(agnesBtn);
     }
 
-    // ۳. سوییچ بین حالت متنی و تصویر
+    // ۳. تغییر حالت بین متنی و تصویر
     agnesBtn.addEventListener('click', () => {
       isAgnesMode = !isAgnesMode;
       if (isAgnesMode) {
@@ -1150,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // ۴. ارسال درخواست به Agnes API
+    // ۴. ارسال درخواست کاملاً استاندارد به API
     async function sendAgnesRequest() {
       const text = promptInput.value.trim();
       if (!text) return;
@@ -1158,6 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (welcomeContainer) welcomeContainer.style.display = 'none';
       if (messagesList) messagesList.style.display = 'flex';
 
+      // نمایش پیام کاربر
       const uRow = document.createElement('div');
       uRow.className = 'message-row user';
       uRow.innerHTML = `
@@ -1167,6 +1168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       promptInput.value = '';
 
+      // پیام در حال ساخت
       const aRow = document.createElement('div');
       aRow.className = 'message-row assistant';
       aRow.innerHTML = `
@@ -1185,10 +1187,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('/api/agnes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text }),
+          body: JSON.stringify({
+            prompt: text,
+            // ارسال ساختار کاملاً استاندارد مورد نیاز API گوگل جمینای
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: text }]
+              }
+            ]
+          }),
         });
 
-        const data = await res.json().catch(() => ({ error: `پاسخ نا معتبر از سرور (کد status: ${res.status})` }));
+        const data = await res.json().catch(() => ({ error: `پاسخ نامعتبر از سرور (کد وضعیت: ${res.status})` }));
 
         if (!res.ok || data.error) {
           let errText = 'خطای ناشناخته در سرور';
@@ -1199,11 +1210,17 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           bubble.innerHTML = `<span style="color:#ef4444;">❌ خطا: ${errText}</span>`;
         } else {
-          let imgUrl = data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : data.data?.[0]?.url;
+          // بررسی انواع فرمت‌های خروجی تصویر یا متن
+          let imgUrl = data.data?.[0]?.b64_json 
+            ? `data:image/png;base64,${data.data[0].b64_json}` 
+            : (data.data?.[0]?.url || data.url);
+
           if (imgUrl) {
             bubble.innerHTML = `<img src="${imgUrl}" alt="Agnes AI Image" style="max-width:100%; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">`;
+          } else if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            bubble.innerHTML = data.candidates[0].content.parts[0].text;
           } else {
-            bubble.innerHTML = `<span style="color:#ef4444;">تصویری از سرور دریافت نشد.</span>`;
+            bubble.innerHTML = `<span style="color:#ef4444;">تصویری یا پاسخی از سرور دریافت نشد.</span>`;
           }
         }
       } catch (err) {
@@ -1213,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       messagesList.scrollTop = messagesList.scrollHeight;
     }
 
-    // ۵. شکار رویداد کلیک
+    // ۵. شکار کلیک دکمه ارسال
     sendBtn.addEventListener('click', (e) => {
       if (!isAgnesMode) return;
       e.stopImmediatePropagation();
@@ -1221,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sendAgnesRequest();
     }, true);
 
-    // ۶. شکار کلید Enter کیبورد
+    // ۶. شکار کلید Enter
     promptInput.addEventListener('keydown', (e) => {
       if (!isAgnesMode) return;
       if (e.key === 'Enter' && !e.shiftKey) {
