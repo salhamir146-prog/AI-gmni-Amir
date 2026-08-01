@@ -2,10 +2,7 @@
 // ChatGPT Classic — Gemini Edition — app.js
 // ==========================================================================
 
-// ---- Model catalog (single source of truth) --------------------------------
-// category values: 'text' | 'gemini-image' | 'imagen' | 'tts' | 'music' | 'video' | 'unsupported'
 const MODEL_CATALOG = [
-  // ---- Text ----
   { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی', category: 'text', desc: 'جدیدترین مدل فلش — سریع، پنجره ۱M توکن' },
   { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: '📝 متنی', category: 'text', desc: 'مدل پایدار و سریع، ۱M توکن' },
   { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', group: '📝 متنی', category: 'text', desc: 'نسخه سبک، مصرف کم' },
@@ -26,30 +23,24 @@ const MODEL_CATALOG = [
   { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', group: '📝 متنی', category: 'text', desc: 'مدل متن‌باز ۳۱ میلیاردی' },
   { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B MoE IT', group: '📝 متنی', category: 'text', desc: 'مدل متن‌باز MoE' },
 
-  // ---- Image (native Gemini — generateContent + responseModalities) ----
   { id: 'gemini-3.1-flash-image', name: 'Nano Banana 2', group: '🎨 تصویر', category: 'gemini-image', desc: 'جدیدترین مدل تصویر Gemini' },
   { id: 'gemini-3.1-flash-lite-image', name: 'Nano Banana 2 Lite', group: '🎨 تصویر', category: 'gemini-image', desc: 'نسخه سبک و ارزان' },
   { id: 'gemini-3-pro-image-preview', name: 'Nano Banana Pro', group: '🎨 تصویر', category: 'gemini-image', desc: 'کیفیت حرفه‌ای' },
   { id: 'gemini-2.5-flash-image', name: 'Nano Banana', group: '🎨 تصویر', category: 'gemini-image', desc: 'مدل پایدار و پرسرعت' },
 
-  // ---- Image (Imagen — predict endpoint) ----
   { id: 'imagen-4.0-generate-001', name: 'Imagen 4', group: '🎨 تصویر', category: 'imagen', desc: 'کیفیت بالا — endpoint مجزا' },
   { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra', group: '🎨 تصویر', category: 'imagen', desc: 'بالاترین کیفیت' },
   { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast', group: '🎨 تصویر', category: 'imagen', desc: 'سریع و مقرون‌به‌صرفه' },
 
-  // ---- Audio TTS ----
   { id: 'gemini-2.5-flash-preview-tts', name: 'Gemini 2.5 Flash TTS', group: '🎵 صوتی', category: 'tts', desc: 'تبدیل متن به گفتار' },
   { id: 'gemini-2.5-pro-preview-tts', name: 'Gemini 2.5 Pro TTS', group: '🎵 صوتی', category: 'tts', desc: 'کیفیت بالاتر' },
   { id: 'gemini-3.1-flash-tts-preview', name: 'Gemini 3.1 Flash TTS', group: '🎵 صوتی', category: 'tts', desc: 'جدیدترین TTS' },
 
-  // ---- Music (not wired — different streaming protocol) ----
   { id: 'lyria-3-clip-preview', name: 'Lyria 3 Clip', group: '🎶 موسیقی', category: 'music', desc: 'تولید قطعه کوتاه موسیقی' },
   { id: 'lyria-3-pro-preview', name: 'Lyria 3 Pro', group: '🎶 موسیقی', category: 'music', desc: 'کیفیت حرفه‌ای' },
 
-  // ---- Video ----
   { id: 'veo-3.1-generate-preview', name: 'Veo 3.1', group: '🎬 ویدیو', category: 'video', desc: 'تولید ویدیو — ممکن است چند دقیقه طول بکشد' },
 
-  // ---- Unsupported for chat ----
   { id: 'gemini-embedding-2', name: 'Gemini Embedding 2', group: '🔍 تخصصی', category: 'unsupported', desc: 'فقط API — بردار متن' },
   { id: 'gemini-embedding-001', name: 'Gemini Embedding 001', group: '🔍 تخصصی', category: 'unsupported', desc: 'فقط API — بردار متن' },
   { id: 'gemini-robotics-er-2-preview', name: 'Gemini Robotics ER 2', group: '🔍 تخصصی', category: 'unsupported', desc: 'رباتیک' },
@@ -58,13 +49,13 @@ const MODEL_CATALOG = [
 ];
 
 const CATEGORY_META = {
-  text:          { label: 'متنی',   icon: 'fa-comment-dots' },
-  'gemini-image':{ label: 'تصویر',  icon: 'fa-image' },
-  imagen:        { label: 'تصویر',  icon: 'fa-image' },
-  tts:           { label: 'صوتی',   icon: 'fa-microphone-lines' },
-  music:         { label: 'موسیقی', icon: 'fa-music' },
-  video:         { label: 'ویدیو',  icon: 'fa-clapperboard' },
-  unsupported:   { label: 'تخصصی',  icon: 'fa-triangle-exclamation' },
+  text:            { label: 'متنی',    icon: 'fa-comment-dots' },
+  'gemini-image':{ label: 'تصویر',   icon: 'fa-image' },
+  imagen:          { label: 'تصویر',   icon: 'fa-image' },
+  tts:             { label: 'صوتی',   icon: 'fa-microphone-lines' },
+  music:           { label: 'موسیقی', icon: 'fa-music' },
+  video:           { label: 'ویدیو',   icon: 'fa-clapperboard' },
+  unsupported:     { label: 'تخصصی',   icon: 'fa-triangle-exclamation' },
 };
 
 const SUGGESTIONS = [
@@ -77,7 +68,6 @@ const SUGGESTIONS = [
 function findModel(id) { return MODEL_CATALOG.find(m => m.id === id) || MODEL_CATALOG[0]; }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ---- DOM refs ----
   const $ = (id) => document.getElementById(id);
   const promptInput = $('promptInput');
   const sendBtn = $('sendBtn');
@@ -92,16 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const categoryPills = $('categoryPills');
   const dynamicParams = $('dynamicParams');
   const suggestionChips = $('suggestionChips');
-  const chatContent = $('chatContent');
   const toastStack = $('toastStack');
   const connStatus = $('connStatus');
 
   const settingsModal = $('settingsModal');
   const openSettingsLink = $('openSettingsLink');
-  const settingsGearBtn = $('settingsGearBtn');
+  const settingsGearBtn = $('openSidebarBtn'); // یا دکمه تنظیمات
   const closeModalBtn = $('closeModalBtn');
   const saveSettingsBtn = $('saveSettingsBtn');
-  const testConnBtn = $('testConnBtn');
+  const testConnBtn = { disabled: false }; // پلاس‌هولدر
   const systemInstructionInput = $('systemInstruction');
   const themeToggleBtn = $('themeToggleBtn');
   const memoryEnabledToggle = $('memoryEnabledToggle');
@@ -110,10 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const sidebar = $('sidebar');
   const closeSidebarBtn = $('closeSidebarBtn');
-  const openSidebarBtn = $('openSidebarBtn');
+  const openSidebarBtns = document.querySelectorAll('#openSidebarBtn');
   const newChatBtn = $('newChatBtn');
+  const imageInput = $('imageInput');
+  const uploadBtn = $('uploadBtn');
 
-  // ---- State ----
   let state = {
     modelId: localStorage.getItem('selectedModel') || 'gemini-3.6-flash',
     systemPrompt: localStorage.getItem('systemPrompt') || '',
@@ -122,17 +112,16 @@ document.addEventListener('DOMContentLoaded', () => {
     memoryEnabled: localStorage.getItem('memoryEnabled') !== 'false',
     longTermMemory: '',
   };
-  let conversationHistory = [];
-  let pendingModelId = state.modelId; // being edited in modal before save
 
-  // ---- Client id (identifies this browser's memory in KV — no login system) ----
+  let conversationHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+  let pendingModelId = state.modelId;
+
   let clientId = localStorage.getItem('clientId');
   if (!clientId) {
     clientId = (crypto.randomUUID ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(16).slice(2));
     localStorage.setItem('clientId', clientId);
   }
 
-  // defaults for generation params
   state.params.temperature ??= 1.0;
   state.params.maxOutputTokens ??= 2048;
   state.params.topP ??= 0.95;
@@ -142,7 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyTheme(state.theme);
 
-  // ---- Long-term memory (Cloudflare KV) ----
+  // بازیابی تاریخچه چت روی صفحه در زمان لود
+  if (conversationHistory.length > 0) {
+    welcomeContainer.style.display = 'none';
+    messagesList.style.display = 'flex';
+    renderHistoryToDOM();
+  }
+
   memoryEnabledToggle.checked = state.memoryEnabled;
   memoryEnabledToggle.addEventListener('change', () => {
     state.memoryEnabled = memoryEnabledToggle.checked;
@@ -174,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.longTermMemory = data.memory || '';
         memoryBox.value = state.longTermMemory;
       }
-    } catch (err) { /* KV may not be bound yet — silently ignore */ }
+    } catch (err) {}
   }
   loadMemory();
 
@@ -192,10 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const extractPrompt =
         'حافظه فعلی کاربر (فهرست نکات پایدار):\n' + (state.longTermMemory || '(خالی)') +
         '\n\nتبادل جدید:\nکاربر: ' + userText + '\nپاسخ دستیار: ' + assistantText +
-        '\n\nوظیفه: فقط نکات پایدار و مهم درباره کاربر (نام، شغل، علایق، ترجیحات، پروژه‌های در حال انجام، اطلاعات تکرارشدنی) را از «تبادل جدید» استخراج کن و با «حافظه فعلی» ادغام کن. ' +
-        'نکات موقتی، احساسات لحظه‌ای، سوالات عمومی یا اطلاعاتی که ربطی به خود کاربر ندارد را ذخیره نکن. ' +
-        'فقط فهرست نهایی به‌روزشده را به‌صورت خطوط bullet (هر خط با -) و به فارسی خروجی بده، بدون هیچ توضیح یا مقدمه اضافه. ' +
-        'اگر نکته پایدار جدیدی وجود نداشت، همان حافظه فعلی را بدون تغییر برگردان. اگر حافظه فعلی خالی بود و نکته‌ای هم نبود، یک رشته کاملاً خالی برگردان.';
+        '\n\nوظیفه: فقط نکات پایدار و مهم درباره کاربر را استخراج کن و با حافظه فعلی ادغام کن. فهرست نهایی را به‌صورت bullet (با خط تیره -) و به فارسی برگردان بدون مقدمه.';
 
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -207,8 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       const newMemory = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (newMemory === undefined) return;
-      if (newMemory === state.longTermMemory) return;
+      if (newMemory === undefined || newMemory === state.longTermMemory) return;
 
       state.longTermMemory = newMemory;
       memoryBox.value = newMemory;
@@ -216,12 +207,9 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: clientId, memory: newMemory }),
       });
-    } catch (err) {
-      console.warn('memory update failed', err);
-    }
+    } catch (err) {}
   }
 
-  // ---- Populate model <select> from catalog ----
   function renderModelOptions(filterCategory) {
     modelSelect.innerHTML = '';
     const groups = {};
@@ -250,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
     modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category].icon}"></i> ${escapeHtml(m.desc)}`;
   }
 
-  // ---- Category pills ----
   const categories = ['all', 'text', 'gemini-image', 'imagen', 'tts', 'music', 'video', 'unsupported'];
   const categoryLabels = { all: 'همه', text: '📝 متنی', 'gemini-image': '🎨 تصویر (Gemini)', imagen: '🎨 تصویر (Imagen)', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
   let activeCategory = 'all';
@@ -259,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
     pill.type = 'button';
     pill.className = 'cat-pill' + (cat === 'all' ? ' active' : '');
     pill.textContent = categoryLabels[cat];
-    pill.dataset.cat = cat;
     pill.addEventListener('click', () => {
       activeCategory = cat;
       categoryPills.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p === pill));
@@ -274,11 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDynamicParams();
   });
 
-  // ---- Dynamic params panel (changes based on selected model's category) ----
   function renderDynamicParams() {
     const m = findModel(pendingModelId);
     dynamicParams.innerHTML = '';
-
     function sliderRow(key, label, min, max, step, hint, fmt) {
       const row = document.createElement('div');
       row.className = 'param-row';
@@ -295,10 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       dynamicParams.appendChild(row);
     }
-
     if (m.category === 'text' || m.category === 'gemini-image') {
-      sliderRow('temperature', 'دما (Temperature)', 0, 2, 0.05, 'مقدار بالاتر = خلاقانه‌تر و متنوع‌تر', v => v.toFixed(2));
-      sliderRow('topP', 'Top-P', 0, 1, 0.01, 'کنترل تنوع کلمات انتخابی', v => v.toFixed(2));
+      sliderRow('temperature', 'دما (Temperature)', 0, 2, 0.05, 'مقدار بالاتر = خلاقانه‌تر', v => v.toFixed(2));
+      sliderRow('topP', 'Top-P', 0, 1, 0.01, 'کنترل تنوع کلمات', v => v.toFixed(2));
       sliderRow('maxOutputTokens', 'حداکثر توکن خروجی', 256, 8192, 256, 'محدودیت طول پاسخ');
     }
     if (m.category === 'tts') {
@@ -306,8 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.className = 'param-row';
       row.innerHTML = `
         <div class="param-head"><span>نام صدا (Voice)</span></div>
-        <input type="text" class="form-control" id="voiceNameInput" value="${escapeHtml(state.params.voiceName)}" placeholder="مثلاً Kore, Puck, Zephyr">
-        <div class="param-hint">لیست کامل صداها در مستندات رسمی Gemini TTS موجود است</div>`;
+        <input type="text" class="form-control" id="voiceNameInput" value="${escapeHtml(state.params.voiceName)}">`;
       dynamicParams.appendChild(row);
       row.querySelector('#voiceNameInput').addEventListener('input', (e) => { state.params.voiceName = e.target.value.trim() || 'Kore'; });
     }
@@ -321,20 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
         </select>`;
       dynamicParams.appendChild(row);
       row.querySelector('#aspectRatioSelect').addEventListener('change', (e) => { state.params.imagenAspectRatio = e.target.value; });
-      sliderRow('imagenSampleCount', 'تعداد تصاویر', 1, 4, 1, 'تعداد تصویر تولیدشده در هر درخواست');
-    }
-    if (m.category === 'music' || m.category === 'video' || m.category === 'unsupported') {
-      const note = document.createElement('div');
-      note.className = 'model-desc';
-      note.style.marginTop = '4px';
-      note.innerHTML = m.category === 'video'
-        ? '<i class="fa-solid fa-circle-info"></i> تولید ویدیو زمان‌بر است و به‌صورت غیرهمزمان (polling) انجام می‌شود.'
-        : '<i class="fa-solid fa-circle-info"></i> این دسته از مدل‌ها در این نسخه چت پشتیبانی کامل ندارند.';
-      dynamicParams.appendChild(note);
+      sliderRow('imagenSampleCount', 'تعداد تصاویر', 1, 4, 1, 'تعداد تصویر');
     }
   }
 
-  // ---- Init selects/panels ----
   renderModelOptions('all');
   renderDynamicParams();
   systemInstructionInput.value = state.systemPrompt;
@@ -344,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
     chip.addEventListener('click', () => { promptInput.value = SUGGESTIONS[i]; promptInput.dispatchEvent(new Event('input')); promptInput.focus(); });
   });
 
-  // ---- Theme ----
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
     themeToggleBtn.innerHTML = t === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
@@ -355,40 +326,25 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme(state.theme);
   });
 
-  // ---- Header / context bar ----
   function updateHeaderForModel(modelId) {
     const m = findModel(modelId);
     currentModelName.textContent = m.name;
     modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category].icon}"></i>`;
-    if (m.category === 'unsupported') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> این مدل برای گفتگو مناسب نیست — لطفاً از تنظیمات یک مدل دیگر انتخاب کنید.`;
-    } else if (m.category === 'video') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-clapperboard"></i> حالت تولید ویدیو فعال — ممکن است چند دقیقه طول بکشد.`;
-    } else if (m.category === 'tts') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-microphone-lines"></i> حالت تبدیل متن به گفتار — صدا: ${escapeHtml(state.params.voiceName)}`;
-    } else if (m.category === 'gemini-image' || m.category === 'imagen') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-image"></i> حالت تولید تصویر فعال`;
-    } else {
-      modelContextBar.style.display = 'none';
-    }
+    modelContextBar.style.display = m.category !== 'text' && m.category !== 'gemini-image' ? 'flex' : 'none';
+    if (m.category === 'tts') modelContextBar.innerHTML = `<i class="fa-solid fa-microphone-lines"></i> حالت TTS — صدا: ${escapeHtml(state.params.voiceName)}`;
+    else if (m.category === 'imagen' || m.category === 'gemini-image') modelContextBar.innerHTML = `<i class="fa-solid fa-image"></i> حالت تولید تصویر فعال`;
+    else if (m.category === 'video') modelContextBar.innerHTML = `<i class="fa-solid fa-clapperboard"></i> حالت ویدیو`;
   }
 
-  // ---- Textarea autosize ----
   promptInput.addEventListener('input', () => {
     promptInput.style.height = 'auto';
     promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + 'px';
-    sendBtn.disabled = promptInput.value.trim() === '';
+    sendBtn.disabled = promptInput.value.trim() === '' && !imageInput.files[0];
   });
 
-  // ---- Sidebar ----
+  openSidebarBtns.forEach(btn => btn.addEventListener('click', () => sidebar.classList.toggle('closed')));
   closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('closed'));
-  openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('closed'));
 
-  // ---- Modal ----
   function openModal() {
     pendingModelId = state.modelId;
     renderModelOptions(activeCategory);
@@ -399,7 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function closeModal() { settingsModal.classList.remove('active'); }
   openSettingsLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-  settingsGearBtn.addEventListener('click', openModal);
   modelDropdownBadge.addEventListener('click', openModal);
   closeModalBtn.addEventListener('click', closeModal);
   settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal(); });
@@ -414,7 +369,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   saveSettingsBtn.addEventListener('click', () => {
-    const prevCategory = findModel(state.modelId).category;
     state.modelId = pendingModelId;
     state.systemPrompt = systemInstructionInput.value;
     localStorage.setItem('selectedModel', state.modelId);
@@ -422,76 +376,88 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('genParams', JSON.stringify(state.params));
     updateHeaderForModel(state.modelId);
     closeModal();
-    const m = findModel(state.modelId);
-    showToast(`مدل به «${m.name}» تغییر کرد`, 'success');
-    const newCategory = m.category;
-    if (newCategory !== prevCategory) {
-      appendSystemNotice(`سویچ به مدل ${m.name} (${CATEGORY_META[m.category].label}) انجام شد.`);
-    }
+    showToast(`مدل به «${findModel(state.modelId).name}» تغییر کرد`, 'success');
   });
-
-  testConnBtn.addEventListener('click', testConnection);
 
   newChatBtn.addEventListener('click', () => {
     conversationHistory = [];
+    localStorage.removeItem('chatHistory');
     messagesList.innerHTML = '';
     messagesList.style.display = 'none';
     welcomeContainer.style.display = 'flex';
-    welcomeContainer.style.flexDirection = 'column';
   });
 
-  // ---- Enter to send ----
+  uploadBtn.addEventListener('click', () => imageInput.click());
+  imageInput.addEventListener('change', () => {
+    if (imageInput.files[0]) {
+      sendBtn.disabled = false;
+      showToast('تصویر پیوست شد', 'success');
+    }
+  });
+
   promptInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (promptInput.value.trim() !== '') handleSend();
+      if (promptInput.value.trim() !== '' || imageInput.files[0]) handleSend();
     }
   });
   sendBtn.addEventListener('click', handleSend);
 
-  // ==========================================================================
-  // SEND LOGIC — branches by model category
-  // ==========================================================================
   async function handleSend() {
     const text = promptInput.value.trim();
-    if (!text) return;
+    const file = imageInput.files[0];
+    if (!text && !file) return;
     const model = findModel(state.modelId);
 
     welcomeContainer.style.display = 'none';
     messagesList.style.display = 'flex';
 
-    appendUserMessage(text);
+    let imageBase64 = null;
+    let imageMime = null;
+    let parts = [];
+
+    if (text) parts.push({ text });
+
+    if (file) {
+      imageMime = file.type;
+      imageBase64 = await toBase64(file);
+      parts.push({ inlineData: { mimeType: imageMime, data: imageBase64 } });
+    }
+
+    appendUserMessage(text, imageBase64);
     promptInput.value = '';
     promptInput.style.height = 'auto';
+    imageInput.value = '';
     sendBtn.disabled = true;
 
-    if (model.category === 'unsupported') {
-      appendNotice('این مدل (' + model.name + ') برای گفتگوی متنی پشتیبانی نمی‌شود. لطفاً از تنظیمات یک مدل متنی، تصویری یا صوتی انتخاب کنید.');
-      return;
-    }
-    if (model.category === 'music') {
-      appendNotice('مدل‌های موسیقی (Lyria) از پروتکل جریانی متفاوتی استفاده می‌کنند و در این نسخه پیاده‌سازی نشده‌اند.');
-      return;
-    }
+    conversationHistory.push({ role: 'user', parts });
+    saveChatHistory();
 
-    conversationHistory.push({ role: 'user', parts: [{ text }] });
-    const { bubble, wrapper } = appendAssistantTyping();
+    const bubble = appendAssistantTyping();
 
     try {
       if (model.category === 'text' || model.category === 'gemini-image') {
-        await handleGeminiGenerate(model, bubble, wrapper);
+        await handleGeminiGenerate(model, bubble);
       } else if (model.category === 'imagen') {
-        await handleImagenGenerate(model, text, bubble, wrapper);
+        await handleImagenGenerate(model, text || 'تصویر', bubble);
       } else if (model.category === 'tts') {
-        await handleTtsGenerate(model, text, bubble, wrapper);
+        await handleTtsGenerate(model, text, bubble);
       } else if (model.category === 'video') {
-        await handleVideoGenerate(model, text, bubble, wrapper);
+        await handleVideoGenerate(model, text, bubble);
       }
     } catch (err) {
-      renderError(bubble, 'خطا در ارتباط با سرور: ' + err.message);
+      renderError(bubble, 'خطا در ارتباط: ' + err.message);
     }
-
     scrollToBottom();
+  }
+
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+    });
   }
 
   async function handleGeminiGenerate(model, bubble) {
@@ -505,33 +471,37 @@ document.addEventListener('DOMContentLoaded', () => {
         maxOutputTokens: state.params.maxOutputTokens,
       },
     };
-    if (model.category === 'gemini-image') {
-      body.generationConfig.responseModalities = ['TEXT', 'IMAGE'];
-    }
+    if (model.category === 'gemini-image') body.generationConfig.responseModalities = ['TEXT', 'IMAGE'];
+
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await res.json();
-    if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
+    if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطا'));
 
-    const parts = data.candidates?.[0]?.content?.parts;
-    if (!parts || !parts.length) return renderError(bubble, 'پاسخی از مدل دریافت نشد.');
+    const resParts = data.candidates?.[0]?.content?.parts;
+    if (!resParts || !resParts.length) return renderError(bubble, 'پاسخی دریافت نشد.');
 
     let html = '';
     let replyText = '';
-    parts.forEach(part => {
+    let historyParts = [];
+
+    resParts.forEach(part => {
       if (part.text) {
         replyText += part.text;
-        html += renderMarkdown(part.text);
+        html += escapeHtml(part.text);
+        historyParts.push({ text: part.text });
       } else if (part.inlineData) {
-        html += `<img class="gen-image" src="data:${part.inlineData.mimeType};base64,${part.inlineData.data}" alt="تصویر تولیدشده">`;
+        html += `<br><img class="gen-image" src="data:${part.inlineData.mimeType};base64,${part.inlineData.data}" alt="تصویر">`;
+        historyParts.push({ inlineData: part.inlineData });
       }
     });
+
     bubble.innerHTML = html;
-    attachMessageEnhancements(bubble);
-    conversationHistory.push({ role: 'model', parts: replyText ? [{ text: replyText }] : [] });
+    conversationHistory.push({ role: 'model', parts: historyParts });
+    saveChatHistory();
 
     if (model.category === 'text' && replyText) {
-      const lastUserText = conversationHistory[conversationHistory.length - 2]?.parts?.[0]?.text || '';
-      updateLongTermMemory(lastUserText, replyText); // fire-and-forget, doesn't block the UI
+      const lastUserText = conversationHistory[conversationHistory.length - 2]?.parts?.find(p => p.text)?.text || '';
+      updateLongTermMemory(lastUserText, replyText);
     }
   }
 
@@ -541,11 +511,12 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify({ model: model.id, prompt, aspectRatio: state.params.imagenAspectRatio, sampleCount: state.params.imagenSampleCount }),
     });
     const data = await res.json();
-    if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
+    if (data.error) return renderError(bubble, data.error.message || data.error);
     const predictions = data.predictions || [];
     if (!predictions.length) return renderError(bubble, 'تصویری دریافت نشد.');
-    bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر تولیدشده">`).join('');
+    bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر">`).join('');
     conversationHistory.push({ role: 'model', parts: [{ text: '[تصویر تولید شد]' }] });
+    saveChatHistory();
   }
 
   async function handleTtsGenerate(model, text, bubble) {
@@ -554,89 +525,51 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify({
         model: model.id,
         contents: [{ role: 'user', parts: [{ text }] }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: state.params.voiceName } } },
-        },
+        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: state.params.voiceName } } } },
       }),
     });
     const data = await res.json();
-    if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
+    if (data.error) return renderError(bubble, data.error.message || data.error);
     const audioPart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
     if (!audioPart) return renderError(bubble, 'صدایی دریافت نشد.');
     bubble.innerHTML = `<audio controls src="data:audio/wav;base64,${audioPart.inlineData.data}"></audio>`;
-    conversationHistory.push({ role: 'model', parts: [{ text: '[پاسخ صوتی تولید شد]' }] });
+    conversationHistory.push({ role: 'model', parts: [{ text: '[صدا تولید شد]' }] });
+    saveChatHistory();
   }
 
   async function handleVideoGenerate(model, prompt, bubble) {
-    bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-clapperboard"></i> در حال شروع تولید ویدیو... این فرآیند ممکن است چند دقیقه طول بکشد.</div>`;
+    bubble.innerHTML = `در حال شروع تولید ویدیو...`;
     const startRes = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model.id, prompt }) });
     const startData = await startRes.json();
-    if (startData.error) return renderError(bubble, typeof startData.error === 'string' ? startData.error : (startData.error.message || 'خطا در شروع تولید ویدیو'));
+    if (startData.error) return renderError(bubble, startData.error.message || 'خطا در شروع ویدیو');
     const opName = startData.name;
-    if (!opName) return renderError(bubble, 'شناسه عملیات ویدیو دریافت نشد.');
-
     let attempts = 0;
     const poll = async () => {
       attempts++;
       const pollRes = await fetch('/api/video?op=' + encodeURIComponent(opName));
       const pollData = await pollRes.json();
-      if (pollData.error) return renderError(bubble, typeof pollData.error === 'string' ? pollData.error : 'خطا در بررسی وضعیت ویدیو');
       if (pollData.done) {
-        const uri = pollData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri
-          || pollData.response?.videos?.[0]?.uri;
-        if (uri) {
-          bubble.innerHTML = `<video controls class="gen-image" src="${uri}"></video><div class="param-hint" style="margin-top:6px;">در صورت عدم پخش، لینک مستقیم را در تنظیمات کلید API بررسی کنید.</div>`;
-        } else {
-          bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-circle-check"></i> عملیات کامل شد اما لینک ویدیو در پاسخ یافت نشد.</div>`;
-        }
+        const uri = pollData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+        if (uri) bubble.innerHTML = `<video controls class="gen-image" src="${uri}"></video>`;
+        else bubble.innerHTML = `عملیات کامل شد اما لینک ویدیو یافت نشد.`;
         conversationHistory.push({ role: 'model', parts: [{ text: '[ویدیو تولید شد]' }] });
-        scrollToBottom();
+        saveChatHistory();
         return;
       }
-      if (attempts > 40) {
-        bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-clock"></i> تولید ویدیو هنوز تمام نشده؛ لطفاً بعداً دوباره بررسی کنید.</div>`;
-        return;
-      }
-      bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-spinner fa-spin"></i> در حال تولید ویدیو... (بررسی ${attempts})</div>`;
+      if (attempts > 40) { bubble.innerHTML = `زمان انتظار به پایان رسید.`; return; }
       setTimeout(poll, 8000);
     };
     setTimeout(poll, 5000);
   }
 
-  // ---- Connection test ----
-  async function testConnection() {
-    connStatus.className = 'user-plan';
-    connStatus.innerHTML = '<span class="dot"></span> در حال بررسی...';
-    testConnBtn.disabled = true;
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gemini-flash-latest', contents: [{ role: 'user', parts: [{ text: 'ping' }] }], generationConfig: { maxOutputTokens: 8 } }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || data.error);
-      connStatus.className = 'user-plan online';
-      connStatus.innerHTML = '<span class="dot"></span> متصل';
-      showToast('اتصال به Gemini برقرار است', 'success');
-    } catch (err) {
-      connStatus.className = 'user-plan offline';
-      connStatus.innerHTML = '<span class="dot"></span> قطع';
-      showToast('اتصال ناموفق بود — کلید API را بررسی کنید', 'error');
-    } finally {
-      testConnBtn.disabled = false;
-    }
-  }
-  testConnection();
-
-  // ---- Rendering helpers ----
-  function appendUserMessage(text) {
+  function appendUserMessage(text, imageBase64) {
     const row = document.createElement('div');
     row.className = 'message-row user';
+    let imgHtml = imageBase64 ? `<img src="data:image/jpeg;base64,${imageBase64}" class="gen-image" style="max-width:200px; margin-bottom:6px; border-radius:8px;">` : '';
     row.innerHTML = `
       <div class="avatar-mini"><i class="fa-solid fa-user"></i></div>
       <div class="message-col">
-        <div class="message-bubble">${escapeHtml(text)}</div>
+        <div class="message-bubble">${imgHtml}${escapeHtml(text)}</div>
       </div>`;
     messagesList.appendChild(row);
     scrollToBottom();
@@ -649,84 +582,58 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="avatar-mini"><i class="fa-solid fa-sparkles"></i></div>
       <div class="message-col">
         <div class="message-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>
-        <div class="msg-actions"></div>
       </div>`;
     messagesList.appendChild(row);
     scrollToBottom();
-    return { bubble: row.querySelector('.message-bubble'), wrapper: row };
-  }
-
-  function appendNotice(text) {
-    const row = document.createElement('div');
-    row.className = 'message-row assistant';
-    row.innerHTML = `<div class="avatar-mini"><i class="fa-solid fa-sparkles"></i></div><div class="message-col"><div class="notice-bubble"><i class="fa-solid fa-circle-info"></i> ${escapeHtml(text)}</div></div>`;
-    messagesList.appendChild(row);
-    scrollToBottom();
-  }
-
-  function appendSystemNotice(text) {
-    if (messagesList.style.display === 'none') return;
-    appendNotice(text);
+    return row.querySelector('.message-bubble');
   }
 
   function renderError(bubble, msg) {
-    bubble.innerHTML = `<div class="error-bubble"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(msg)}</div>`;
+    bubble.innerHTML = `<span style="color: var(--error-color, #ef4444);">خطا: ${escapeHtml(msg)}</span>`;
   }
 
-  function renderMarkdown(text) {
-    const raw = marked.parse(text);
-    return window.DOMPurify ? DOMPurify.sanitize(raw) : raw;
-  }
-
-  function attachMessageEnhancements(bubble) {
-    bubble.querySelectorAll('pre').forEach(pre => {
-      if (pre.querySelector('.code-copy-btn')) return;
-      const btn = document.createElement('button');
-      btn.className = 'code-copy-btn';
-      btn.textContent = 'Copy';
-      btn.addEventListener('click', () => {
-        const code = pre.querySelector('code')?.textContent || pre.textContent;
-        navigator.clipboard.writeText(code).then(() => {
-          btn.textContent = 'Copied!';
-          setTimeout(() => (btn.textContent = 'Copy'), 1500);
+  function renderHistoryToDOM() {
+    messagesList.innerHTML = '';
+    conversationHistory.forEach(item => {
+      if (item.role === 'user') {
+        let text = '';
+        let imgBase64 = null;
+        item.parts.forEach(p => {
+          if (p.text) text = p.text;
+          if (p.inlineData) imgBase64 = p.inlineData.data;
         });
-      });
-      pre.style.position = 'relative';
-      pre.appendChild(btn);
+        appendUserMessage(text, imgBase64);
+      } else if (item.role === 'model') {
+        const bubble = appendAssistantTyping();
+        let html = '';
+        item.parts.forEach(p => {
+          if (p.text) html += escapeHtml(p.text);
+          if (p.inlineData) html += `<br><img class="gen-image" src="data:${p.inlineData.mimeType};base64,${p.inlineData.data}" alt="تصویر">`;
+        });
+        bubble.innerHTML = html;
+      }
     });
-    const row = bubble.closest('.message-row');
-    const actions = row?.querySelector('.msg-actions');
-    if (actions && !actions.querySelector('.msg-action-btn')) {
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'msg-action-btn';
-      copyBtn.title = 'کپی پاسخ';
-      copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-      copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(bubble.innerText);
-        showToast('متن کپی شد', 'success');
-      });
-      actions.appendChild(copyBtn);
-    }
   }
 
-  function scrollToBottom() { chatContent.scrollTop = chatContent.scrollHeight; }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+  function saveChatHistory() {
+    localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
   }
 
-  // ---- Toasts ----
-  function showToast(msg, type) {
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
-    el.innerHTML = `<i class="fa-solid ${icon}"></i> ${escapeHtml(msg)}`;
-    toastStack.appendChild(el);
-    setTimeout(() => {
-      el.classList.add('fade-out');
-      setTimeout(() => el.remove(), 300);
-    }, 2800);
+  function scrollToBottom() {
+    const chatContentEl = $('chatContent');
+    chatContentEl.scrollTop = chatContentEl.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastStack.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
   }
 });
