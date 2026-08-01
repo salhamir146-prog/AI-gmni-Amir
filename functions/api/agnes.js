@@ -1,65 +1,66 @@
-// Cloudflare Pages Function — /api/agnes
-// این فایل درخواست ساده فرانت‌اند (شامل prompt) را دریافت می‌کند و به Agnes می‌فرستد
-
 export async function onRequestPost(context) {
   try {
     const { request, env } = context;
     const body = await request.json();
 
+    // کلید API را از محیط دریافت کن
     const apiKey = env.AGNES_API_KEY;
     if (!apiKey) {
-      return json({ 
-        error: 'کلید Agnes API در پنل کلودفلر تعریف نشده است. لطفاً AGNES_API_KEY را در Environment Variables قرار دهید.' 
-      }, 500);
+      return new Response(JSON.stringify({ error: 'کلید AGNES_API_KEY تعریف نشده است' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // Agnes AI از فرمت OpenAI استفاده می‌کند
+    // آدرس درست Agnes
     const url = 'https://agnes-ai.com/v1/images/generations';
 
-    // دریافت مستقیم پرامپت از فرانت‌اند (که دکمه شما می‌فرستد)
+    // پرامپت را از دکمه جدید دریافت کن
     const promptText = body.prompt;
 
-    if (!promptText || !promptText.trim()) {
-      return json({ error: 'لطفاً متن توصیف تصویر را وارد کنید.' }, 400);
+    if (!promptText) {
+      return new Response(JSON.stringify({ error: 'متن پرامپت خالی است' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // ساخت بدنه‌ی درخواست استاندارد OpenAI
-    const upstreamBody = {
-      model: 'imagen-4.0', // یا مدل دیگر Agnes
-      prompt: promptText,
-      n: body.n || 1,
-      size: body.size || '1024x1024',
-      response_format: 'url'
-    };
-
-    // ارسال به Agnes
+    // درخواست استاندارد OpenAI به Agnes
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify(upstreamBody),
+      body: JSON.stringify({
+        model: 'imagen-4.0', // یا هر مدلی که Agnes دارد
+        prompt: promptText,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'url'
+      })
     });
 
     const data = await response.json();
-    
+
+    // اگر خطا بود برگردان
     if (!response.ok) {
-      return json({ 
-        error: data.error || { message: `خطای Agnes API (کد ${response.status})` } 
-      }, response.status);
+      return new Response(JSON.stringify({ error: data.error || 'خطای ناشناخته Agnes' }), {
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    return json(data, 200);
+    // اگر موفق بود، داده را برگردان
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
 
   } catch (err) {
-    return json({ error: err.message }, 500);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-}
-
-function json(obj, status) {
-  return new Response(JSON.stringify(obj), { 
-    status, 
-    headers: { 'Content-Type': 'application/json' } 
-  });
 }
