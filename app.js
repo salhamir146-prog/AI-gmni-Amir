@@ -1100,8 +1100,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Load saved chats on startup ----
   loadChatsList();
 });
-// =========================================================
-// 🎨 افزودنی Agnes AI (نسخه نهایی و رفع خطای contents)
+// // =========================================================
+// 🎨 افزودنی Agnes AI (نسخه نهایی و رفع خطای Quota)
 // =========================================================
 (function () {
   let isAgnesMode = false;
@@ -1136,17 +1136,21 @@ document.addEventListener('DOMContentLoaded', () => {
       leftActions.appendChild(agnesBtn);
     }
 
-    // ۳. تغییر حالت بین متنی و تصویر
+    // ۳. تغییر حالت بین متنی و تصویر + تغییر کلیدهای دکمه ارسال
     agnesBtn.addEventListener('click', () => {
       isAgnesMode = !isAgnesMode;
       if (isAgnesMode) {
         agnesBtn.style.color = '#f59e0b';
         agnesBtn.style.transform = 'scale(1.25)';
         promptInput.placeholder = '🎨 توصیف عکسی که می‌خواهی بسازی را بنویس...';
+        // وقتی حالت Agnes روشن است، دکمه ارسال را تغییر می‌دهیم تا مطمئن شویم به اشتباه به گوگل نمی‌رود
+        sendBtn.disabled = false;
       } else {
         agnesBtn.style.color = '';
         agnesBtn.style.transform = 'scale(1)';
         promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
+        // برگرداندن دکمه ارسال به حالت عادی
+        sendBtn.disabled = promptInput.value.trim() === '' && !state.uploadedFile;
       }
     });
 
@@ -1167,6 +1171,7 @@ document.addEventListener('DOMContentLoaded', () => {
       messagesList.appendChild(uRow);
 
       promptInput.value = '';
+      sendBtn.disabled = true; // جلوگیری از ارسال مجدد تا دریافت پاسخ
 
       // پیام در حال ساخت
       const aRow = document.createElement('div');
@@ -1189,13 +1194,8 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             prompt: text,
-            // ارسال ساختار کاملاً استاندارد مورد نیاز API گوگل جمینای
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: text }]
-              }
-            ]
+            n: 1,
+            size: '1024x1024'
           }),
         });
 
@@ -1227,21 +1227,23 @@ document.addEventListener('DOMContentLoaded', () => {
         bubble.innerHTML = `<span style="color:#ef4444;">خطا در ارتباط با سرور: ${err.message}</span>`;
       }
 
+      sendBtn.disabled = false; // فعال کردن مجدد دکمه ارسال
       messagesList.scrollTop = messagesList.scrollHeight;
     }
 
-    // ۵. شکار کلیک دکمه ارسال
-    sendBtn.addEventListener('click', (e) => {
-      if (!isAgnesMode) return;
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      sendAgnesRequest();
+    // ۵. شکار کلیک دکمه ارسال (با اولویت بالاتر)
+    // از `useCapture = true` استفاده میکنیم تا قبل از کد اصلی برنامه اجرا شود
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#sendBtn') && isAgnesMode) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        sendAgnesRequest();
+      }
     }, true);
 
     // ۶. شکار کلید Enter
     promptInput.addEventListener('keydown', (e) => {
-      if (!isAgnesMode) return;
-      if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.key === 'Enter' && !e.shiftKey && isAgnesMode) {
         e.stopImmediatePropagation();
         e.preventDefault();
         sendAgnesRequest();
