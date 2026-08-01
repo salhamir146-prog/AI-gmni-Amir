@@ -31,10 +31,8 @@ const MODEL_CATALOG = [
   { id: 'gemini-3-pro-image-preview', name: 'Nano Banana Pro', group: '🎨 تصویر', category: 'gemini-image', desc: 'کیفیت حرفه‌ای' },
   { id: 'gemini-2.5-flash-image', name: 'Nano Banana', group: '🎨 تصویر', category: 'gemini-image', desc: 'مدل پایدار و پرسرعت' },
 
-  // ---- Image (Imagen — predict endpoint) ----
-  { id: 'imagen-4.0-generate-001', name: 'Imagen 4', group: '🎨 تصویر', category: 'imagen', desc: 'کیفیت بالا — endpoint مجزا' },
-  { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra', group: '🎨 تصویر', category: 'imagen', desc: 'بالاترین کیفیت' },
-  { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast', group: '🎨 تصویر', category: 'imagen', desc: 'سریع و مقرون‌به‌صرفه' },
+  // ---- Image (Imagen — predict endpoint / Agnes AI) ----
+  { id: 'imagen-4.0-generate-001', name: 'Imagen 4 (Agnes)', group: '🎨 تصویر', category: 'imagen', desc: 'کیفیت بالا — متصل به Agnes AI' },
 
   // ---- Audio TTS ----
   { id: 'gemini-2.5-flash-preview-tts', name: 'Gemini 2.5 Flash TTS', group: '🎵 صوتی', category: 'tts', desc: 'تبدیل متن به گفتار' },
@@ -757,6 +755,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const model = findModel(state.modelId);
 
+    // ---> جدید: تشخیص دستور خروج
+    if (text.toLowerCase().includes('خروج') || text.toLowerCase() === 'exit') {
+      // بازگشت به حالت متنی
+      state.modelId = 'gemini-3.6-flash'; // تغییر به یک مدل متنی پیش‌فرض
+      localStorage.setItem('selectedModel', state.modelId);
+      updateHeaderForModel(state.modelId);
+      appendNotice('🔁 به حالت چت متنی برگشتید.');
+      return; // توقف اجرای تابع (چون نباید درخواست ارسال شود)
+    }
+    // ---> پایان بخش جدید
+
+    // ---> جدید: تشخیص خودکار حالت تصویر
+    let targetModel = model;
+    let isImageRequest = false;
+
+    // اگر دستور "عکس" یا "تصویر" یا "نقاشی" یا "بساز" در متن باشد، به حالت تصویر می‌رویم
+    if (text.match(/(عکس|تصویر|نقاشی|بساز|تولید کن)/i)) {
+      if (targetModel.category !== 'imagen' && targetModel.category !== 'gemini-image') {
+        // اگر مدل فعلی تصویری نیست، به صورت خودکار به Imagen تغییر می‌کنیم
+        const imagenModel = MODEL_CATALOG.find(m => m.id === 'imagen-4.0-generate-001');
+        if (imagenModel) {
+          targetModel = imagenModel;
+          isImageRequest = true;
+          state.modelId = targetModel.id;
+          localStorage.setItem('selectedModel', state.modelId);
+          updateHeaderForModel(state.modelId);
+          appendNotice(`🔄 به حالت تولید تصویر (Agnes AI) تغییر کرد.`);
+        }
+      } else {
+        isImageRequest = true;
+      }
+    }
+    // ---> پایان بخش جدید
+
     if (conversationHistory.length === 0 && !state.currentChatId) {
       state.currentChatId = 'chat_' + Date.now();
     }
@@ -805,12 +837,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadedFileCopy = state.uploadedFile;
     clearUploadedFile();
 
-    if (model.category === 'unsupported') {
-      appendNotice('این مدل (' + model.name + ') برای گفتگوی متنی پشتیبانی نمی‌شود.');
+    if (targetModel.category === 'unsupported') {
+      appendNotice('این مدل (' + targetModel.name + ') برای گفتگوی متنی پشتیبانی نمی‌شود.');
       sendBtn.disabled = false;
       return;
     }
-    if (model.category === 'music') {
+    if (targetModel.category === 'music') {
       appendNotice('مدل‌های موسیقی (Lyria) در این نسخه پشتیبانی نمی‌شوند.');
       sendBtn.disabled = false;
       return;
@@ -837,14 +869,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const { bubble, wrapper } = appendAssistantTyping();
 
     try {
-      if (model.category === 'text' || model.category === 'gemini-image') {
-        await handleGeminiGenerate(model, bubble, wrapper);
-      } else if (model.category === 'imagen') {
-        await handleImagenGenerate(model, text || displayText, bubble, wrapper);
-      } else if (model.category === 'tts') {
-        await handleTtsGenerate(model, text || displayText, bubble, wrapper);
-      } else if (model.category === 'video') {
-        await handleVideoGenerate(model, text || displayText, bubble, wrapper);
+      // ---> اصلاح شرط‌ها برای پشتیبانی از حالت تصویر
+      if (targetModel.category === 'text' || targetModel.category === 'gemini-image') {
+        await handleGeminiGenerate(targetModel, bubble, wrapper);
+      } else if (targetModel.category === 'imagen' || isImageRequest) {
+        await handleImagenGenerate(targetModel, text || displayText, bubble, wrapper);
+      } else if (targetModel.category === 'tts') {
+        await handleTtsGenerate(targetModel, text || displayText, bubble, wrapper);
+      } else if (targetModel.category === 'video') {
+        await handleVideoGenerate(targetModel, text || displayText, bubble, wrapper);
       }
       autoSaveChat();
     } catch (err) {
@@ -897,16 +930,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ---> اصلاح تابع تولید تصویر برای اتصال به Agnes AI
   async function handleImagenGenerate(model, prompt, bubble) {
-    const res = await fetch('/api/imagen', {
+    // ارسال درخواست به Agnes AI
+    const res = await fetch('/api/agnes', { // مسیر جدید را صدا می‌زنیم
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model.id, prompt, aspectRatio: state.params.imagenAspectRatio, sampleCount: state.params.imagenSampleCount }),
+      body: JSON.stringify({ 
+        prompt: prompt, 
+        n: state.params.imagenSampleCount || 1,
+        size: '1024x1024' // سایز پیش‌فرض
+      }),
     });
+    
     const data = await res.json();
     if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
-    const predictions = data.predictions || [];
+    
+    // فرمت پاسخ Agnes مشابه OpenAI است (data[0].url)
+    const predictions = data.data || [];
     if (!predictions.length) return renderError(bubble, 'تصویری دریافت نشد.');
-    bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر تولیدشده">`).join('');
+    
+    // نمایش تصویر
+    bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="${p.url}" alt="تصویر تولیدشده">`).join('');
     conversationHistory.push({ role: 'model', parts: [{ text: '[تصویر تولید شد]' }] });
   }
 
