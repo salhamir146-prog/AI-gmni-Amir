@@ -755,22 +755,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const model = findModel(state.modelId);
 
-    // ---> جدید: تشخیص دستور خروج
+    // ---> تشخیص دستور خروج
     if (text.toLowerCase().includes('خروج') || text.toLowerCase() === 'exit') {
-      // بازگشت به حالت متنی
       state.modelId = 'gemini-3.6-flash'; // تغییر به یک مدل متنی پیش‌فرض
       localStorage.setItem('selectedModel', state.modelId);
       updateHeaderForModel(state.modelId);
       appendNotice('🔁 به حالت چت متنی برگشتید.');
-      return; // توقف اجرای تابع (چون نباید درخواست ارسال شود)
+      return;
     }
-    // ---> پایان بخش جدید
 
-    // ---> جدید: تشخیص خودکار حالت تصویر
+    // ---> تشخیص خودکار حالت تصویر
     let targetModel = model;
     let isImageRequest = false;
 
-    // اگر دستور "عکس" یا "تصویر" یا "نقاشی" یا "بساز" در متن باشد، به حالت تصویر می‌رویم
+    // اگر دستور "عکس" یا "تصویر" یا "نقاشی" یا "بساز" یا "تولید کن" در متن باشد، به حالت تصویر می‌رویم
     if (text.match(/(عکس|تصویر|نقاشی|بساز|تولید کن)/i)) {
       if (targetModel.category !== 'imagen' && targetModel.category !== 'gemini-image') {
         // اگر مدل فعلی تصویری نیست، به صورت خودکار به Imagen تغییر می‌کنیم
@@ -787,7 +785,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isImageRequest = true;
       }
     }
-    // ---> پایان بخش جدید
 
     if (conversationHistory.length === 0 && !state.currentChatId) {
       state.currentChatId = 'chat_' + Date.now();
@@ -869,11 +866,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const { bubble, wrapper } = appendAssistantTyping();
 
     try {
-      // ---> اصلاح شرط‌ها برای پشتیبانی از حالت تصویر
-      if (targetModel.category === 'text' || targetModel.category === 'gemini-image') {
-        await handleGeminiGenerate(targetModel, bubble, wrapper);
-      } else if (targetModel.category === 'imagen' || isImageRequest) {
+      // ---> اصلاح شرط‌ها برای پشتیبانی کامل از حالت تصویر (Agnes)
+      if (targetModel.category === 'imagen') {
+        // اگر مدل imagenes است، همه چیز را به Agnes بفرست (چه عکس باشد، چه متن عادی مثل "سگ")
         await handleImagenGenerate(targetModel, text || displayText, bubble, wrapper);
+      } else if (targetModel.category === 'text' || targetModel.category === 'gemini-image') {
+        await handleGeminiGenerate(targetModel, bubble, wrapper);
       } else if (targetModel.category === 'tts') {
         await handleTtsGenerate(targetModel, text || displayText, bubble, wrapper);
       } else if (targetModel.category === 'video') {
@@ -930,26 +928,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ---> اصلاح تابع تولید تصویر برای اتصال به Agnes AI
+  // ---> اصلاح تابع تولید تصویر برای Agnes
   async function handleImagenGenerate(model, prompt, bubble) {
-    // ارسال درخواست به Agnes AI
-    const res = await fetch('/api/agnes', { // مسیر جدید را صدا می‌زنیم
+    const res = await fetch('/api/agnes', { 
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         prompt: prompt, 
         n: state.params.imagenSampleCount || 1,
-        size: '1024x1024' // سایز پیش‌فرض
+        size: '1024x1024' 
       }),
     });
     
     const data = await res.json();
     if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
     
-    // فرمت پاسخ Agnes مشابه OpenAI است (data[0].url)
+    // Agnes از فرمت OpenAI استفاده می‌کند
     const predictions = data.data || [];
-    if (!predictions.length) return renderError(bubble, 'تصویری دریافت نشد.');
     
-    // نمایش تصویر
+    if (predictions.length === 0) {
+      // اگر درخواست متنی بود اما مدل imagenes است، باید برگرداند که پاسخی ندارد
+      bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-circle-info"></i> در حالت تولید تصویر (Imagen) هستید. مدل‌های تصویری نمی‌توانند به سوالات متنی پاسخ دهند. برای بازگشت به چت، کلمه "خروج" را بفرستید.</div>`;
+      conversationHistory.push({ role: 'model', parts: [{ text: '[در حالت تصویر] مدل قادر به پاسخ متنی نیست. "خروج" را بفرستید.' }] });
+      return;
+    }
+    
     bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="${p.url}" alt="تصویر تولیدشده">`).join('');
     conversationHistory.push({ role: 'model', parts: [{ text: '[تصویر تولید شد]' }] });
   }
