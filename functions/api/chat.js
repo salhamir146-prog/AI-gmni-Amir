@@ -113,3 +113,15 @@ function uint8ArrayToBase64(bytes) {
   }
   return btoa(binary);
 }
+// اضافه کردن این بخش برای هماهنگی با سیستم Wrangler
+export default {
+  async fetch(request, env, ctx) {
+    // اگر تابع شما onRequestPost است، نام آن را در پایین تغییر دهید
+    if (typeof onRequest === 'function') {
+      return onRequest({ request, env, ctx, params: {}, data: {} });
+    } else if (typeof onRequestPost === 'function') {
+      return onRequestPost({ request, env, ctx, params: {}, data: {} });
+    }
+    return new Response("Not Found", { status: 404 });
+  }
+};
