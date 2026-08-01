@@ -1,43 +1,58 @@
-// functions/api/agnes.js
 export async function onRequestPost(context) {
-  try {
-    const { request, env } = context;
-    const body = await request.json();
+  const { request, env } = context;
 
+  try {
+    // گرفتن کلید از محیط کلودفلر
     const apiKey = env.AGNES_API_KEY;
     if (!apiKey) {
-      return json({ error: 'کلید Agnes API در پنل کلودفلر تعریف نشده است. لطفاً AGNES_API_KEY را در Environment Variables قرار دهید.' }, 500);
+      return new Response(
+        JSON.stringify({ error: 'کلید AGNES_API_KEY در متغیرهای محیطی کلودفلر تنظیم نشده است.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Agnes AI از فرمت OpenAI برای تولید تصویر استفاده می‌کند
-    const url = 'https://agnes-ai.com/v1/images/generations';
+    const body = await request.json();
+    const prompt = body.prompt;
 
-    const upstreamBody = {
-      model: 'imagen-4.0', // یا هر مدل تصویری که Agnes پشتیبانی می‌کند
-      prompt: body.prompt,
-      n: body.n || 1,
-      size: body.size || '1024x1024',
-    };
+    if (!prompt) {
+      return new Response(
+        JSON.stringify({ error: 'توضیحات عکس (Prompt) ارسال نشده است.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const response = await fetch(url, {
+    // ارسال درخواست به ای‌پی‌آی Agnes AI
+    const response = await fetch('https://api.agnes-ai.com/v1/images/generations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(upstreamBody),
+      body: JSON.stringify({
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json'
+      }),
     });
 
     const data = await response.json();
-    if (!response.ok) {
-      return json({ error: data.error || { message: `خطای Agnes API (کد ${response.status})` } }, response.status);
-    }
-    return json(data, 200);
-  } catch (err) {
-    return json({ error: err.message }, 500);
-  }
-}
 
-function json(obj, status) {
-  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok || data.error) {
+      const errorMsg = data.error?.message || data.message || 'خطا در دریافت تصویر از Agnes AI';
+      return new Response(
+        JSON.stringify({ error: errorMsg }),
+        { status: response.status || 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    return new Response(JSON.stringify(data), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: 'خطای سرور: ' + err.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 }
