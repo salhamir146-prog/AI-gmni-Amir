@@ -1,17 +1,17 @@
 // Cloudflare Pages Function — /api/imagen
-// Imagen models use the :predict endpoint (different shape from generateContent).
+// Uses dedicated IMAGEN_API_KEY and supports imagen-3.0-generate-001/002
 
 export async function onRequestPost(context) {
   try {
     const { request, env } = context;
     const body = await request.json();
 
-    const apiKey = env.GEMINI_API_KEY;
+    const apiKey = env.IMAGEN_API_KEY;
     if (!apiKey) {
-      return json({ error: 'کلید API در پنل کلودفلر تعریف نشده است. لطفاً GEMINI_API_KEY را در Environment Variables قرار دهید.' }, 500);
+      return json({ error: 'کلید اختصاصی تولید تصویر (IMAGEN_API_KEY) تعریف نشده است.' }, 500);
     }
 
-    const model = body.model || 'imagen-4.0-generate-001';
+    const model = body.model || 'imagen-3.0-generate-001';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:predict?key=${apiKey}`;
 
     const upstreamBody = {
