@@ -1,5 +1,5 @@
 // ==========================================================================
-// ChatGPT Classic — Gemini Edition — app.js (نسخه نهایی)
+// ChatGPT Classic — Gemini Edition — app.js (نسخه نهایی و بدون خطا)
 // ==========================================================================
 
 // ---- Model catalog (single source of truth) --------------------------------
@@ -715,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
   sendBtn.addEventListener('click', handleSend);
 
   // ==========================================================================
-  // SEND LOGIC (نسخه نهایی و ساده شده برای جلوگیری از خطاهای 400)
+  // SEND LOGIC (اصلاح نهایی ترتیب شرط‌ها)
   // ==========================================================================
   async function handleSend() {
     const text = promptInput.value.trim();
@@ -775,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const { bubble, wrapper } = appendAssistantTyping();
 
     try {
-      // مهمترین قسمت: مسیریابی کاملاً واضح
+      // *** مهم‌ترین قسمت: ترتیب صحیح شرط‌ها (اول imagen، بعد بقیه) ***
       if (model.category === 'imagen') {
         // درخواست تصویر به آدرس /api/imagen فرستاده می‌شود
         await handleImagenGenerate(model, text || displayText, bubble);
