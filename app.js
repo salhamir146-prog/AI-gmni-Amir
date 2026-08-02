@@ -1,5 +1,5 @@
 // ==========================================================================
-// ChatGPT Classic — Gemini Edition — app.js
+// ChatGPT Classic — Gemini Edition — app.js (نسخه نهایی)
 // ==========================================================================
 
 // ---- Model catalog (single source of truth) --------------------------------
@@ -715,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
   sendBtn.addEventListener('click', handleSend);
 
   // ==========================================================================
-  // SEND LOGIC (اصلاح شده برای تشخیص صحیح Imagen)
+  // SEND LOGIC (نسخه نهایی و ساده شده برای جلوگیری از خطاهای 400)
   // ==========================================================================
   async function handleSend() {
     const text = promptInput.value.trim();
@@ -730,7 +730,6 @@ document.addEventListener('DOMContentLoaded', () => {
     welcomeContainer.style.display = 'none';
     messagesList.style.display = 'flex';
 
-    // Prepare user message
     let userParts = [];
     let displayText = text || '';
 
@@ -738,80 +737,55 @@ document.addEventListener('DOMContentLoaded', () => {
       const file = state.uploadedFile;
       if (file.mimeType.startsWith('image/')) {
         displayText = text || `[تصویر: ${file.name}]`;
-        userParts.push({
-          inlineData: {
-            mimeType: file.mimeType,
-            data: file.data,
-          }
-        });
+        userParts.push({ inlineData: { mimeType: file.mimeType, data: file.data } });
       } else {
         displayText = text ? `${text}\n\n📎 [فایل: ${file.name}]` : `📎 [فایل: ${file.name}]`;
         try {
           const decoded = atob(file.data);
           displayText += `\n\n--- محتوای فایل ---\n${decoded.substring(0, 4000)}${decoded.length > 4000 ? '...' : ''}`;
-        } catch (e) {
-          // Binary file
-        }
+        } catch (e) { /* Binary file */ }
       }
     }
 
-    if (text) {
-      userParts.push({ text: text });
-    } else if (userParts.length === 0) {
-      userParts.push({ text: displayText });
-    }
+    if (text) userParts.push({ text: text });
+    else if (userParts.length === 0) userParts.push({ text: displayText });
 
-    // Show user message
     appendUserMessage(displayText, state.uploadedFile);
     promptInput.value = '';
     promptInput.style.height = 'auto';
     sendBtn.disabled = true;
 
-    // Save file before clearing
     const uploadedFileCopy = state.uploadedFile;
     clearUploadedFile();
 
-    if (model.category === 'unsupported') {
-      appendNotice('این مدل (' + model.name + ') برای گفتگوی متنی پشتیبانی نمی‌شود.');
-      sendBtn.disabled = false;
-      return;
-    }
-    if (model.category === 'music') {
-      appendNotice('مدل‌های موسیقی (Lyria) در این نسخه پشتیبانی نمی‌شوند.');
+    if (model.category === 'unsupported' || model.category === 'music') {
+      appendNotice(`این مدل (${model.name}) در این نسخه پشتیبانی نمی‌شود.`);
       sendBtn.disabled = false;
       return;
     }
 
-    // Build conversation entry
     const userEntry = { role: 'user', parts: [] };
     if (uploadedFileCopy && uploadedFileCopy.mimeType.startsWith('image/')) {
-      userEntry.parts.push({
-        inlineData: {
-          mimeType: uploadedFileCopy.mimeType,
-          data: uploadedFileCopy.data,
-        }
-      });
+      userEntry.parts.push({ inlineData: { mimeType: uploadedFileCopy.mimeType, data: uploadedFileCopy.data } });
     }
-    if (text) {
-      userEntry.parts.push({ text: text });
-    }
-    if (userEntry.parts.length === 0) {
-      userEntry.parts.push({ text: displayText });
-    }
+    if (text) userEntry.parts.push({ text: text });
+    if (userEntry.parts.length === 0) userEntry.parts.push({ text: displayText });
     conversationHistory.push(userEntry);
 
     const { bubble, wrapper } = appendAssistantTyping();
 
     try {
-      // این شرط‌ها اصلاح شده‌اند تا Imagen را به درستی تشخیص دهند
+      // مهمترین قسمت: مسیریابی کاملاً واضح
       if (model.category === 'imagen') {
-        await handleImagenGenerate(model, text || displayText, bubble, wrapper);
+        // درخواست تصویر به آدرس /api/imagen فرستاده می‌شود
+        await handleImagenGenerate(model, text || displayText, bubble);
       } else if (model.category === 'text' || model.category === 'gemini-image') {
-        await handleGeminiGenerate(model, bubble, wrapper);
+        // درخواست متنی به آدرس /api/chat فرستاده می‌شود
+        await handleGeminiGenerate(model, bubble);
       } else if (model.category === 'tts') {
-        await handleTtsGenerate(model, text || displayText, bubble, wrapper);
+        await handleTtsGenerate(model, text || displayText, bubble);
       } else if (model.category === 'video') {
-        await handleVideoGenerate(model, text || displayText, bubble, wrapper);
+        await handleVideoGenerate(model, text || displayText, bubble);
       }
       autoSaveChat();
     } catch (err) {
@@ -864,9 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ***** I M A G E N   H A N D L E R   (اصلاح شده) *****
   async function handleImagenGenerate(model, prompt, bubble) {
-    // نمایش انیمیشن زیبای در حال ساخت
     bubble.innerHTML = `
       <div class="image-generating-bubble">
         <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -885,7 +857,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const predictions = data.predictions || [];
     if (!predictions.length) return renderError(bubble, 'تصویری دریافت نشد.');
     
-    // نمایش تصاویر با انیمیشن زیبا
     bubble.innerHTML = predictions.map(p => `
       <img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر تولیدشده" style="animation: floatIn 0.5s ease;">
     `).join('');
@@ -928,8 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const pollData = await pollRes.json();
       if (pollData.error) return renderError(bubble, typeof pollData.error === 'string' ? pollData.error : 'خطا در بررسی وضعیت ویدیو');
       if (pollData.done) {
-        const uri = pollData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri
-          || pollData.response?.videos?.[0]?.uri;
+        const uri = pollData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri || pollData.response?.videos?.[0]?.uri;
         if (uri) {
           bubble.innerHTML = `<video controls class="gen-image" src="${uri}"></video><div class="param-hint" style="margin-top:6px;">لینک مستقیم ویدیو</div>`;
         } else {
