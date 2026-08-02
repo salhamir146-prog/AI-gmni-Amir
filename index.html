@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Classic - Light Theme</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Vazirmatn Persian Font & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-top-header">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+                        <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 18.306 1.3a10.079 10.079 0 0 0-9.298 6.048 9.967 9.967 0 0 0-6.68 5.1 10.076 10.076 0 0 0 1.558 11.758 9.96 9.96 0 0 0 .855 8.185 10.078 10.078 0 0 0 10.855 4.835 9.965 9.965 0 0 0 7.516 2.55 10.079 10.079 0 0 0 9.298-6.049 9.966 9.966 0 0 0 6.679-5.1 10.077 10.077 0 0 0-1.557-11.757L37.532 16.87z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="top-header-actions">
+                    <button class="icon-btn" title="جستجو"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <button class="icon-btn" id="closeSidebarBtn" title="بستن سایدبار"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="nav-links">
+                <button class="nav-item new-chat-nav" id="newChatBtn">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>گفتگوی جدید</span>
+                </button>
+                <a href="#" class="nav-item">
+                    <i class="fa-regular fa-images"></i>
+                    <span>تصاویر (Images)</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>کتابخانه (Library)</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-plug"></i>
+                    <span>پلاگین‌ها (Plugins)</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-regular fa-folder"></i>
+                    <span>پروژه‌ها (Projects)</span>
+                </a>
+                <a href="#" class="nav-item" id="openSettingsLink">
+                    <i class="fa-solid fa-ellipsis"></i>
+                    <span>بیشتر و تنظیمات</span>
+                </a>
+            </div>
+
+            <!-- Recents Section -->
+            <div class="recents-section">
+                <div class="recents-title">چت‌های اخیر (Recents)</div>
+                <div class="chat-history-list" id="chatHistoryList">
+                    <div class="history-item active">
+                        <span>کد HTML شبیه چت جی پی تی</span>
+                    </div>
+                    <div class="history-item">
+                        <span>گفتگوی دوستانه</span>
+                    </div>
+                    <div class="history-item">
+                        <span>حاجی داداش</span>
+                    </div>
+                    <div class="history-item">
+                        <span>سلام محمد حسین</span>
+                    </div>
+                    <div class="history-item">
+                        <span>دسترسی به کدکس</span>
+                    </div>
+                    <div class="history-item">
+                        <span>سلام و پروژه خفن</span>
+                    </div>
+                    <div class="history-item">
+                        <span>لوگوی حرفه‌ای خیاطی</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Profile Footer -->
+            <div class="user-profile-footer">
+                <div class="user-info">
+                    <div class="avatar">AS</div>
+                    <div class="user-details">
+                        <div class="user-name">Amir salh</div>
+                        <div class="user-plan">Free</div>
+                    </div>
+                </div>
+                <button class="upgrade-btn-pill" id="upgradeBtn">Upgrade</button>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <!-- Top Header Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="sidebar-toggle-btn" id="openSidebarBtn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <!-- Model Dropdown Badge -->
+                    <div class="model-dropdown-badge" id="modelDropdownBadge">
+                        <span id="currentModelName">ChatGPT (gemini-3.6-flash)</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </div>
+
+                <div class="top-bar-right">
+                    <button class="upgrade-link" id="topUpgradeBtn">
+                        <i class="fa-solid fa-sparkles"></i>
+                        <span>Upgrade</span>
+                    </button>
+                    <button class="icon-btn-circle" id="settingsGearBtn" title="تنظیمات">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Content Container -->
+            <div class="chat-content" id="chatContent">
+                <!-- Center Welcome Screen -->
+                <div class="welcome-container" id="welcomeContainer">
+                    <h1 class="welcome-title">چطور می‌توانم کمکتان کنم؟</h1>
+                    <p class="welcome-subtitle">Where should we begin?</p>
+                </div>
+
+                <!-- Messages Stream -->
+                <div class="messages-list" id="messagesList" style="display: none;"></div>
+            </div>
+
+            <!-- Bottom Floating Input Area -->
+            <div class="input-area-wrapper">
+                <div class="floating-input-box">
+                    <button class="input-action-btn attach-btn" title="افزودن فایل/پلاگین">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    
+                    <textarea id="promptInput" placeholder="هر چه می‌خواهید بپرسید..." rows="1"></textarea>
+
+                    <div class="input-right-actions">
+                        <button class="input-action-btn mic-btn" id="micBtn" title="ورودی صوتی">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                        <button class="send-action-btn" id="sendBtn" disabled>
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="disclaimer-text">
+                    Gemini ممکن است اطلاعات نادرستی ارائه دهد. پاسخ‌ها را بررسی کنید.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings & Model Selector Modal -->
+    <div class="modal-backdrop" id="settingsModal">
+        <div class="settings-modal-card">
+            <div class="modal-header">
+                <h3>تنظیمات و انتخاب مدل (Gemini)</h3>
+                <button class="close-modal-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modelSelect">انتخاب مدل هوش مصنوعی:</label>
+                    <select id="modelSelect" class="form-control">
+                        <optgroup label="📝 ۱. مدل‌های متنی (Text Generation)">
+                            <option value="gemini-3.6-flash" selected>gemini-3.6-flash (جدیدترین فلش جولای ۲۰۲۶)</option>
+                            <option value="gemini-3.5-flash">gemini-3.5-flash (پایدار)</option>
+                            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (سبک)</option>
+                            <option value="gemini-3.1-flash">gemini-3.1-flash (همه‌کاره)</option>
+                            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+                            <option value="gemini-3-pro-preview">gemini-3-pro-preview (حرفه‌ای)</option>
+                            <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+                            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+                            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                            <option value="gemini-flash-latest">gemini-flash-latest</option>
+                            <option value="gemini-pro-latest">gemini-pro-latest</option>
+                            <option value="gemini-omni-flash-preview">gemini-omni-flash-preview</option>
+                        </optgroup>
+                        <optgroup label="🎨 ۲. مدل‌های تولید تصویر (Image Generation)">
+                            <option value="gemini-3.1-flash-image">gemini-3.1-flash-image (Nano Banana 2)</option>
+                            <option value="gemini-3.1-flash-lite-image">gemini-3.1-flash-lite-image (Nano Banana 2 Lite)</option>
+                            <option value="gemini-3-pro-image-preview">gemini-3-pro-image-preview (Nano Banana Pro)</option>
+                            <option value="gemini-2.5-flash-image">gemini-2.5-flash-image</option>
+                            <option value="imagen-4.0-generate-001">imagen-4.0-generate-001 (Imagen 4)</option>
+                            <option value="imagen-4.0-ultra-generate-001">imagen-4.0-ultra-generate-001</option>
+                            <option value="imagen-4.0-fast-generate-001">imagen-4.0-fast-generate-001</option>
+                        </optgroup>
+                        <optgroup label="🎵 ۳. مدل‌های صوتی (TTS / Speech)">
+                            <option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts</option>
+                            <option value="gemini-2.5-pro-preview-tts">gemini-2.5-pro-preview-tts</option>
+                            <option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview</option>
+                            <option value="lyria-3-clip-preview">lyria-3-clip-preview (موسیقی ۳۰ ثانیه‌ای)</option>
+                            <option value="lyria-3-pro-preview">lyria-3-pro-preview</option>
+                        </optgroup>
+                        <optgroup label="🎬 ۴. تولید ویدیو">
+                            <option value="veo-3.1-generate-preview">veo-3.1-generate-preview (Veo 3.1)</option>
+                        </optgroup>
+                        <optgroup label="🔍 ۵. مدل‌های تخصصی و تحقیق">
+                            <option value="gemini-embedding-2">gemini-embedding-2</option>
+                            <option value="gemini-embedding-001">gemini-embedding-001</option>
+                            <option value="aqa">aqa (پاسخ‌گویی با مستندات)</option>
+                            <option value="deep-research-preview">deep-research-preview (تحقیق عمیق)</option>
+                            <option value="deep-research-pro-preview">deep-research-pro-preview</option>
+                            <option value="deep-research-max-preview">deep-research-max-preview</option>
+                            <option value="gemini-robotics-er-2-preview">gemini-robotics-er-2-preview</option>
+                            <option value="antigravity-preview-05-2026">antigravity-preview-05-2026 (Agent)</option>
+                            <option value="gemini-2.5-computer-use-preview">gemini-2.5-computer-use-preview</option>
+                        </optgroup>
+                        <optgroup label="🤖 ۶. مدل‌های Open Source Gemma">
+                            <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+                            <option value="gemma-4-26b-a4b-it">gemma-4-26b-a4b-it</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="systemInstruction">دستورالعمل سیستم (System Prompt):</label>
+                    <textarea id="systemInstruction" class="form-control" rows="3" placeholder="مثلاً: پاسخ‌ها را کوتاه و کاربردی ارائه بده..."></textarea>
+                </div>
+
+                <div class="cloudflare-note">
+                    <strong>🔐 نکته امنیتی Cloudflare:</strong> کلید Gemini API شما به صورت امن در قسمت <code>Environment Variables</code> پروژه Cloudflare Pages قرار می‌گیرد و به هیچ عنوان در مرورگر لو نمی‌رود.
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="saveSettingsBtn">ذخیره تغییرات</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
