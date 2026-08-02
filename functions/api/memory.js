@@ -1,42 +1,49 @@
-// Cloudflare Pages Function — /api/memory
-// Long-term memory backed by Cloudflare KV. Requires a KV namespace bound
-// to this Pages project with the exact binding name: USER_MEMORY
-//
-// GET    /api/memory?uid=xxx     -> { memory: "..." }
-// POST   /api/memory { uid, memory } -> overwrite stored memory
-// DELETE /api/memory?uid=xxx     -> erase stored memory
-
-export async function onRequestGet(context) {
+export async function onRequest(context) {
   const { request, env } = context;
-  const uid = new URL(request.url).searchParams.get('uid');
-  if (!uid) return json({ error: 'شناسه کاربر (uid) ارسال نشده است.' }, 400);
-  if (!env.USER_MEMORY) return json({ error: 'KV namespace با نام USER_MEMORY به این پروژه متصل نشده است.' }, 500);
+  const url = new URL(request.url);
+  const uid = url.searchParams.get("uid");
 
-  const memory = await env.USER_MEMORY.get(uid);
-  return json({ memory: memory || '' }, 200);
-}
+  const corsHeaders = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
 
-export async function onRequestPost(context) {
-  const { request, env } = context;
-  const body = await request.json();
-  if (!body.uid) return json({ error: 'شناسه کاربر (uid) ارسال نشده است.' }, 400);
-  if (!env.USER_MEMORY) return json({ error: 'KV namespace با نام USER_MEMORY به این پروژه متصل نشده است.' }, 500);
+  // مدیریت درخواست‌های Preflight CORS
+  if (request.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-  const memory = (body.memory || '').toString().slice(0, 8000); // keep KV entries small & cheap
-  await env.USER_MEMORY.put(body.uid, memory);
-  return json({ ok: true, memory }, 200);
-}
+  try {
+    // 1️⃣ دریافت حافظه (GET)
+    if (request.method === "GET") {
+      if (!uid || !env.MEMORY_KV) {
+        return new Response(JSON.stringify({ memory: "" }), { headers: corsHeaders });
+      }
+      const memory = (await env.MEMORY_KV.get(uid)) || "";
+      return new Response(JSON.stringify({ memory }), { headers: corsHeaders });
+    }
 
-export async function onRequestDelete(context) {
-  const { request, env } = context;
-  const uid = new URL(request.url).searchParams.get('uid');
-  if (!uid) return json({ error: 'شناسه کاربر (uid) ارسال نشده است.' }, 400);
-  if (!env.USER_MEMORY) return json({ error: 'KV namespace با نام USER_MEMORY به این پروژه متصل نشده است.' }, 500);
+    // 2️⃣ ذخیره حافظه (POST)
+    if (request.method === "POST") {
+      const body = await request.json();
+      if (body.uid && body.memory !== undefined && env.MEMORY_KV) {
+        await env.MEMORY_KV.put(body.uid, body.memory);
+      }
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
 
-  await env.USER_MEMORY.delete(uid);
-  return json({ ok: true }, 200);
-}
+    // 3️⃣ حذف حافظه (DELETE)
+    if (request.method === "DELETE") {
+      if (uid && env.MEMORY_KV) {
+        await env.MEMORY_KV.delete(uid);
+      }
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
 
-function json(obj, status) {
-  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: "Method Not Allowed" }), { status: 405, headers: corsHeaders });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+  }
 }
