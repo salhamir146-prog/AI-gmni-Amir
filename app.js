@@ -790,52 +790,39 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
     if (sendBtn) sendBtn.disabled = false;
   }
+
+// ==========================================================================
+  // IMAGEN GENERATION HANDLER
   // ==========================================================================
-  // GENERATION HANDLERS
-  // ==========================================================================
-async function handleGeminiGenerate(model, bubble) {
-    // 🎯 گرفتن اسم مدل و تبدیل امن به حروف کوچک (برای جلوگیری از خطای حروف بزرگ و کوچک)
-    const modelId = model?.id || state.modelId || '';
-    const modelIdLower = modelId.toLowerCase();
-    const modelCategory = (model?.category || '').toLowerCase();
+  async function handleImagenGenerate(model, promptText, bubble) {
+    const modelId = model?.id || state.modelId || 'imagen-3.0-generate-001';
 
-    // 🛡️ گارد ایمنی پیشگیرانه: هدایت خودکار مدل‌های Imagen به تابع تصویرساز
-    if (modelIdLower.includes('imagen') || modelCategory === 'imagen') {
-      const currentPrompt = promptInput ? promptInput.value.trim() : '';
-      return await handleImagenGenerate(model, currentPrompt, bubble);
-    }
-
-    const body = {
-      model: modelId,
-      contents: conversationHistory,
-      systemInstruction: buildSystemInstruction(),
-      generationConfig: {
-        temperature: state.params?.temperature ?? 0.7,
-        topP: state.params?.topP ?? 0.95,
-        maxOutputTokens: state.params?.maxOutputTokens ?? 2048,
-      },
-    };
-
-    const res = await fetch('/api/chat', {
+    const res = await fetch('/api/imagen', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: modelId,
+        prompt: promptText,
+        aspectRatio: state.params?.imagenAspectRatio || '1:1',
+        sampleCount: state.params?.imagenSampleCount || 1,
+      }),
     });
 
     const data = await res.json();
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'پاسخی دریافت نشد.';
     bubble.classList.remove('typing-dots');
-    bubble.innerHTML = renderMarkdown(replyText);
-    attachMessageEnhancements(bubble);
-
-    conversationHistory.push({ role: 'model', parts: [{ text: replyText }] });
-
-    const lastUserMsg = conversationHistory[conversationHistory.length - 2]?.parts?.find(p => p.text)?.text || '';
-    if (lastUserMsg && replyText) {
-      updateLongTermMemory(lastUserMsg, replyText);
+    if (data.images && data.images.length > 0) {
+      let html = '<div class="generated-images-grid">';
+      data.images.forEach(imgBase64 => {
+        html += `<div class="img-wrapper"><img src="data:image/png;base64,${imgBase64}" class="generated-img" alt="تصویر تولید شده"/><a href="data:image/png;base64,${imgBase64}" download="imagen.png" class="dl-btn" title="دانلود"><i class="fa-solid fa-download"></i></a></div>`;
+      });
+      html += '</div>';
+      bubble.innerHTML = html;
+    } else {
+      bubble.textContent = 'تصویری تولید نشد.';
     }
+    attachMessageEnhancements(bubble);
   }
   // ==========================================================================
   // UI & DOM HELPERS
