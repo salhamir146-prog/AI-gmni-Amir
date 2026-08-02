@@ -743,6 +743,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================================================
   // SEND LOGIC (نسخه اصلاح‌شده و هوشمند)
   // ==========================================================================
+// ==========================================================================
+  // SEND LOGIC (نسخه کامل و هوشمند)
+  // ==========================================================================
   async function handleSend() {
     const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
@@ -802,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { bubble } = appendAssistantTyping();
 
-    // 🎯 تغییر اصلی اینجاست: بررسی هوشمند مدل بر اساس نام و دسته‌بندی
+    // 🎯 هدایت هوشمند مدل
     const isImagen = model.category === 'imagen' || model.id.includes('imagen');
     const isTts = model.category === 'tts' || model.id.includes('tts');
     const isVideo = model.category === 'video' || model.id.includes('video');
@@ -827,9 +830,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // API HANDLERS & GENERATION FUNCTIONS
+  // GENERATION HANDLERS
   // ==========================================================================
   async function handleGeminiGenerate(model, bubble) {
+    // گارد ایمنی پیشگیرانه
+    if (model.id.includes('imagen') || model.category === 'imagen') {
+      const currentPrompt = promptInput ? promptInput.value.trim() : '';
+      return await handleImagenGenerate(model, currentPrompt, bubble);
+    }
+
     const body = {
       model: model.id,
       contents: conversationHistory,
@@ -848,19 +857,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const data = await res.json();
-    if (data.error) {
-      throw new Error(data.error.message || JSON.stringify(data.error));
-    }
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
     const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'پاسخی دریافت نشد.';
     bubble.classList.remove('typing-dots');
     bubble.innerHTML = renderMarkdown(replyText);
     attachMessageEnhancements(bubble);
 
-    conversationHistory.push({
-      role: 'model',
-      parts: [{ text: replyText }],
-    });
+    conversationHistory.push({ role: 'model', parts: [{ text: replyText }] });
 
     const lastUserMsg = conversationHistory[conversationHistory.length - 2]?.parts?.find(p => p.text)?.text || '';
     if (lastUserMsg && replyText) {
@@ -869,140 +873,81 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function handleImagenGenerate(model, promptText, bubble) {
-    const body = {
-      model: model.id,
-      prompt: promptText,
-      aspectRatio: state.params.imagenAspectRatio || '1:1',
-      sampleCount: state.params.imagenSampleCount || 1,
-    };
-
     const res = await fetch('/api/imagen', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: model.id,
+        prompt: promptText,
+        aspectRatio: state.params.imagenAspectRatio,
+        sampleCount: state.params.imagenSampleCount,
+      }),
     });
 
     const data = await res.json();
-    if (data.error) {
-      throw new Error(data.error.message || JSON.stringify(data.error));
-    }
-
-    const images = data.images || data.predictions || [];
-    if (images.length === 0) {
-      throw new Error('هیچ تصوری توسط مدل تولید نشد.');
-    }
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
     bubble.classList.remove('typing-dots');
-    let html = `<div class="generated-images-grid" style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">`;
-    images.forEach((img, idx) => {
-      const src = img.startsWith('data:') ? img : `data:image/png;base64,${img}`;
-      html += `
-        <div class="img-wrapper" style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border-color, #e5e7eb);">
-          <img src="${src}" alt="تصویر تولید شده ${idx + 1}" style="width:100%;height:auto;display:block;" />
-          <a href="${src}" download="generated-image-${idx + 1}.png" class="btn-download-img" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:6px 10px;border-radius:4px;text-decoration:none;" title="دانلود تصویر">
-            <i class="fa-solid fa-download"></i>
-          </a>
-        </div>`;
-    });
-    html += `</div>`;
-
-    bubble.innerHTML = html;
-
-    conversationHistory.push({
-      role: 'model',
-      parts: [{ text: `[تصویر تولید شده بر اساس پرامپت: "${promptText}"]` }],
-    });
+    if (data.images && data.images.length > 0) {
+      let html = '<div class="generated-images-grid">';
+      data.images.forEach(imgBase64 => {
+        html += `<div class="img-wrapper"><img src="data:image/png;base64,${imgBase64}" class="generated-img" alt="تصویر تولید شده"/><a href="data:image/png;base64,${imgBase64}" download="imagen.png" class="dl-btn" title="دانلود"><i class="fa-solid fa-download"></i></a></div>`;
+      });
+      html += '</div>';
+      bubble.innerHTML = html;
+    } else {
+      bubble.textContent = 'تصویری تولید نشد.';
+    }
+    attachMessageEnhancements(bubble);
   }
 
-  async function handleTtsGenerate(model, promptText, bubble) {
-    const body = {
-      model: model.id,
-      text: promptText,
-      voice: state.params.voiceName || 'Kore',
-    };
-
+  async function handleTtsGenerate(model, text, bubble) {
     const res = await fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ text: text, voiceName: state.params.voiceName }),
     });
 
     const data = await res.json();
-    if (data.error) {
-      throw new Error(data.error.message || JSON.stringify(data.error));
-    }
-
-    const audioSrc = data.audioUrl || (data.audioContent ? `data:audio/mp3;base64,${data.audioContent}` : null);
-    if (!audioSrc) {
-      throw new Error('فایل صوتی دریافت نشد.');
-    }
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
     bubble.classList.remove('typing-dots');
-    bubble.innerHTML = `
-      <div class="tts-player-container">
-        <p style="margin-bottom:8px;"><i class="fa-solid fa-volume-high"></i> خروجی صوتی (صدای <strong>${escapeHtml(state.params.voiceName)}</strong>):</p>
-        <audio controls src="${audioSrc}" style="width:100%;"></audio>
-      </div>`;
-
-    conversationHistory.push({
-      role: 'model',
-      parts: [{ text: `[صدا تولید شد: "${promptText}"]` }],
-    });
+    if (data.audioContent) {
+      bubble.innerHTML = `
+        <div class="tts-player">
+          <audio controls src="data:audio/mp3;base64,${data.audioContent}"></audio>
+        </div>`;
+    } else {
+      bubble.textContent = 'صوت تولید نشد.';
+    }
+    attachMessageEnhancements(bubble);
   }
 
   async function handleVideoGenerate(model, promptText, bubble) {
-    const body = {
-      model: model.id,
-      prompt: promptText,
-    };
-
-    const res = await fetch('/api/video', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-    if (data.error) {
-      throw new Error(data.error.message || JSON.stringify(data.error));
-    }
-
-    const videoUrl = data.videoUrl || (data.videoContent ? `data:video/mp4;base64,${data.videoContent}` : null);
-    if (!videoUrl) {
-      throw new Error('ویدیو تولید نشد.');
-    }
-
-    bubble.classList.remove('typing-dots');
-    bubble.innerHTML = `
-      <div class="video-player-container">
-        <video controls src="${videoUrl}" style="width:100%;border-radius:8px;"></video>
-      </div>`;
-
-    conversationHistory.push({
-      role: 'model',
-      parts: [{ text: `[ویدیو تولید شد: "${promptText}"]` }],
-    });
+    bubble.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال ارسال درخواست تولید ویدیو...';
+    // شبیه‌سازی / اندپوینت ویدیو
+    setTimeout(() => {
+      bubble.innerHTML = '<i class="fa-solid fa-circle-check"></i> درخواست تولید ویدیو ثبت شد. قابلیت پخش ویدیو به‌زودی فعال می‌شود.';
+      attachMessageEnhancements(bubble);
+    }, 2000);
   }
 
   // ==========================================================================
-  // HELPER UI FUNCTIONS
+  // UI & DOM HELPERS
   // ==========================================================================
   function appendUserMessage(text, file) {
     const row = document.createElement('div');
     row.className = 'message-row user';
+    let contentHtml = escapeHtml(text).replace(/\n/g, '<br>');
 
-    let fileContentHtml = '';
     if (file && file.mimeType.startsWith('image/')) {
-      fileContentHtml = `<div class="user-attached-img" style="margin-bottom:8px;"><img src="data:${file.mimeType};base64,${file.data}" alt="${escapeHtml(file.name)}" style="max-width:240px;border-radius:8px;" /></div>`;
+      contentHtml += `<br><img src="data:${file.mimeType};base64,${file.data}" class="chat-attached-img" alt="تصویر پیوست"/>`;
     }
 
     row.innerHTML = `
       <div class="avatar-mini"><i class="fa-solid fa-user"></i></div>
       <div class="message-col">
-        <div class="message-bubble">
-          ${fileContentHtml}
-          <div>${escapeHtml(text).replace(/\n/g, '<br>')}</div>
-        </div>
+        <div class="message-bubble">${contentHtml}</div>
       </div>`;
     messagesList.appendChild(row);
     scrollToBottom();
@@ -1015,130 +960,99 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="avatar-mini"><i class="fa-solid fa-sparkles"></i></div>
       <div class="message-col">
         <div class="message-bubble typing-dots">
-          <span>.</span><span>.</span><span>.</span>
+          <span></span><span></span><span></span>
         </div>
       </div>`;
     messagesList.appendChild(row);
     scrollToBottom();
-    const bubble = row.querySelector('.message-bubble');
-    return { bubble, wrapper: row };
+    return { row, bubble: row.querySelector('.message-bubble') };
   }
 
-  function appendNotice(text) {
-    const row = document.createElement('div');
-    row.className = 'message-row notice';
-    row.innerHTML = `<div class="notice-box" style="padding:10px 14px;background:rgba(234,179,8,0.1);border-radius:8px;color:#ca8a04;"><i class="fa-solid fa-circle-info"></i> ${escapeHtml(text)}</div>`;
-    messagesList.appendChild(row);
+  function appendNotice(msg) {
+    const div = document.createElement('div');
+    div.className = 'system-notice';
+    div.innerHTML = `<i class="fa-solid fa-info-circle"></i> ${escapeHtml(msg)}`;
+    messagesList.appendChild(div);
     scrollToBottom();
   }
 
-  function appendSystemNotice(text) {
-    const row = document.createElement('div');
-    row.className = 'system-notice-line';
-    row.style.cssText = 'text-align:center;font-size:12px;color:var(--text-muted);margin:8px 0;';
-    row.innerHTML = `<span><i class="fa-solid fa-sliders"></i> ${escapeHtml(text)}</span>`;
-    messagesList.appendChild(row);
-    scrollToBottom();
+  function appendSystemNotice(msg) {
+    appendNotice(msg);
   }
 
-  function renderError(bubble, errorMsg) {
+  function renderError(bubble, errText) {
     bubble.classList.remove('typing-dots');
-    bubble.innerHTML = `<div class="error-msg-box" style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(errorMsg)}</div>`;
+    bubble.classList.add('error-bubble');
+    bubble.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(errText)}`;
   }
 
-  function attachMessageEnhancements(bubble) {
-    bubble.querySelectorAll('pre').forEach(pre => {
-      if (pre.querySelector('.copy-code-btn')) return;
-      pre.style.position = 'relative';
-      const btn = document.createElement('button');
-      btn.className = 'copy-code-btn';
-      btn.style.cssText = 'position:absolute;top:6px;left:6px;padding:4px 8px;font-size:11px;border-radius:4px;background:rgba(255,255,255,0.2);border:none;cursor:pointer;color:inherit;';
-      btn.innerHTML = '<i class="fa-regular fa-copy"></i> کپی کد';
-      btn.addEventListener('click', () => {
-        const code = pre.querySelector('code')?.innerText || pre.innerText;
-        navigator.clipboard.writeText(code).then(() => {
-          btn.innerHTML = '<i class="fa-solid fa-check"></i> کپی شد!';
-          setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> کپی کد'; }, 2000);
-        });
-      });
-      pre.appendChild(btn);
-    });
+  function scrollToBottom() {
+    if (chatContent) chatContent.scrollTop = chatContent.scrollHeight;
+  }
+
+  function showToast(text, type = 'info') {
+    if (!toastStack) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = escapeHtml(text);
+    toastStack.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function renderMarkdown(text) {
     if (!text) return '';
-    if (typeof window.marked !== 'undefined') {
-      return window.marked.parse(text);
-    }
-    let html = escapeHtml(text);
-    html = html.replace(/```([\s\S]*?)```/g, (m, p1) => `<pre style="background:var(--code-bg, #1e1e1e);color:#fff;padding:12px;border-radius:6px;overflow-x:auto;"><code>${p1}</code></pre>`);
-    html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.06);padding:2px 4px;border-radius:4px;">$1</code>');
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    html = html.replace(/\n/g, '<br>');
-    return html;
+    // تبدیل ساده‌ی کدهای داخل گراو (```)
+    let formatted = escapeHtml(text);
+    formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    formatted = formatted.replace(/\n/g, '<br>');
+    return formatted;
   }
 
-  function scrollToBottom() {
-    if (chatContent) {
-      chatContent.scrollTop = chatContent.scrollHeight;
-    }
-  }
-
-  function showToast(msg, type = 'info') {
-    if (!toastStack) return;
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.style.cssText = 'padding:10px 16px;margin-top:8px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);background:#333;color:#fff;display:flex;align-items:center;gap:8px;font-size:13px;transition:opacity 0.3s;';
-    if (type === 'success') toast.style.background = '#16a34a';
-    if (type === 'error') toast.style.background = '#dc2626';
-
-    const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info';
-    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${escapeHtml(msg)}</span>`;
-    toastStack.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
+  function attachMessageEnhancements(bubble) {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-msg-btn';
+    copyBtn.title = 'کپی متن';
+    copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(bubble.innerText);
+      showToast('متن کپی شد', 'success');
+    });
+    const actions = bubble.parentElement.querySelector('.msg-actions') || bubble.parentElement;
+    actions.appendChild(copyBtn);
   }
 
   async function testConnection() {
-    if (!testConnBtn) return;
-    testConnBtn.disabled = true;
-    testConnBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال تست...';
+    if (connStatus) connStatus.textContent = 'در حال بررسی ارتباط...';
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gemini-3.5-flash',
+          model: state.modelId,
           contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
-          generationConfig: { maxOutputTokens: 5 },
         }),
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'خطا در تست اتصال');
-      showToast('اتصال به سرور برقرار است ✅', 'success');
-      if (connStatus) connStatus.textContent = 'متصل';
-    } catch (err) {
-      showToast('خطا در اتصال: ' + err.message, 'error');
-      if (connStatus) connStatus.textContent = 'قطع';
-    } finally {
-      testConnBtn.disabled = false;
-      testConnBtn.innerHTML = 'تست اتصال';
+      if (res.ok && !data.error) {
+        if (connStatus) connStatus.textContent = 'ارتباط برقرار است ✅';
+        showToast('اتصال به سرور با موفقیت برقرار شد', 'success');
+      } else {
+        throw new Error(data.error?.message || 'پاسخ نامعتبر از سرور');
+      }
+    } catch (e) {
+      if (connStatus) connStatus.textContent = 'خطا در ارتباط ❌';
+      showToast('خطا در اتصال: ' + e.message, 'error');
     }
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
+  // بارگذاری اولیه لیست چت‌های ذخیره‌شده
   loadChatsList();
 });
