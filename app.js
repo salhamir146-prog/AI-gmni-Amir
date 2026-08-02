@@ -793,21 +793,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // GENERATION HANDLERS
   // ==========================================================================
-  async function handleGeminiGenerate(model, bubble) {
-    // گارد ایمنی پیشگیرانه
-    if (model.id.includes('imagen') || model.category === 'imagen') {
+async function handleGeminiGenerate(model, bubble) {
+    // 🎯 گرفتن اسم مدل و تبدیل امن به حروف کوچک (برای جلوگیری از خطای حروف بزرگ و کوچک)
+    const modelId = model?.id || state.modelId || '';
+    const modelIdLower = modelId.toLowerCase();
+    const modelCategory = (model?.category || '').toLowerCase();
+
+    // 🛡️ گارد ایمنی پیشگیرانه: هدایت خودکار مدل‌های Imagen به تابع تصویرساز
+    if (modelIdLower.includes('imagen') || modelCategory === 'imagen') {
       const currentPrompt = promptInput ? promptInput.value.trim() : '';
       return await handleImagenGenerate(model, currentPrompt, bubble);
     }
 
     const body = {
-      model: model.id,
+      model: modelId,
       contents: conversationHistory,
       systemInstruction: buildSystemInstruction(),
       generationConfig: {
-        temperature: state.params.temperature,
-        topP: state.params.topP,
-        maxOutputTokens: state.params.maxOutputTokens,
+        temperature: state.params?.temperature ?? 0.7,
+        topP: state.params?.topP ?? 0.95,
+        maxOutputTokens: state.params?.maxOutputTokens ?? 2048,
       },
     };
 
@@ -832,67 +837,6 @@ document.addEventListener('DOMContentLoaded', () => {
       updateLongTermMemory(lastUserMsg, replyText);
     }
   }
-
-  async function handleImagenGenerate(model, promptText, bubble) {
-    const res = await fetch('/api/imagen', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model.id,
-        prompt: promptText,
-        aspectRatio: state.params.imagenAspectRatio,
-        sampleCount: state.params.imagenSampleCount,
-      }),
-    });
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-
-    bubble.classList.remove('typing-dots');
-    if (data.images && data.images.length > 0) {
-      let html = '<div class="generated-images-grid">';
-      data.images.forEach(imgBase64 => {
-        html += `<div class="img-wrapper"><img src="data:image/png;base64,${imgBase64}" class="generated-img" alt="تصویر تولید شده"/><a href="data:image/png;base64,${imgBase64}" download="imagen.png" class="dl-btn" title="دانلود"><i class="fa-solid fa-download"></i></a></div>`;
-      });
-      html += '</div>';
-      bubble.innerHTML = html;
-    } else {
-      bubble.textContent = 'تصویری تولید نشد.';
-    }
-    attachMessageEnhancements(bubble);
-  }
-
-  async function handleTtsGenerate(model, text, bubble) {
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text, voiceName: state.params.voiceName }),
-    });
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-
-    bubble.classList.remove('typing-dots');
-    if (data.audioContent) {
-      bubble.innerHTML = `
-        <div class="tts-player">
-          <audio controls src="data:audio/mp3;base64,${data.audioContent}"></audio>
-        </div>`;
-    } else {
-      bubble.textContent = 'صوت تولید نشد.';
-    }
-    attachMessageEnhancements(bubble);
-  }
-
-  async function handleVideoGenerate(model, promptText, bubble) {
-    bubble.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال ارسال درخواست تولید ویدیو...';
-    // شبیه‌سازی / اندپوینت ویدیو
-    setTimeout(() => {
-      bubble.innerHTML = '<i class="fa-solid fa-circle-check"></i> درخواست تولید ویدیو ثبت شد. قابلیت پخش ویدیو به‌زودی فعال می‌شود.';
-      attachMessageEnhancements(bubble);
-    }, 2000);
-  }
-
   // ==========================================================================
   // UI & DOM HELPERS
   // ==========================================================================
@@ -990,14 +934,14 @@ document.addEventListener('DOMContentLoaded', () => {
     actions.appendChild(copyBtn);
   }
 
-  async function testConnection() {
+ async function testConnection() {
     if (connStatus) connStatus.textContent = 'در حال بررسی ارتباط...';
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: state.modelId,
+          model: 'gemini-1.5-flash', // 🎯 مدل متنی ثابت برای تست
           contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
         }),
       });
