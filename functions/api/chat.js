@@ -1,34 +1,31 @@
-// Cloudflare Worker — /api/chat
-// Supports Gemini (text & image) and Groq (Llama & DeepSeek)
-// Version 2.0 - Debugging enabled
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-export default {
+// functions/api/chat.js
+var chat_default = {
   async fetch(request, env, ctx) {
-    if (request.method !== 'POST') {
-      return json({ error: 'Method Not Allowed' }, 405);
+    if (request.method !== "POST") {
+      return json({ error: "Method Not Allowed" }, 405);
     }
-
     try {
       const body = await request.json();
-      const modelId = body.model || 'gemini-3.6-flash';
+      const modelId = body.model || "gemini-3.6-flash";
 
-      // اگر مدل تصویر (Imagen) به اشتباه به اینجا ارسال شد، فوراً خطا بده!
-      if (modelId.startsWith('imagen-')) {
-        return json({ error: `خطای بحرانی: مدل ${modelId} نباید به /api/chat ارسال می‌شد. لطفاً در app.js بررسی کنید که شرط 'imagen' به '/api/imagen' برود.` }, 400);
+      // 🛡️ محافظ اختصاصی: جلوگیری از پردازش مدل‌های Imagen در مسیر چت
+      if (modelId.toLowerCase().includes("imagen")) {
+        return json({ 
+          error: { message: "خطای بحرانی: مدل imagen نباید به /api/chat ارسال شود. لطفاً بررسی کنید که درخواست به /api/imagen برود." } 
+        }, 400);
       }
 
-      // 1. Check if it's a Groq model
       const groqModels = [
-        'llama-3.3-70b-versatile', 
-        'llama-3.1-8b-instant', 
-        'deepseek-r1-distill-llama-70b'
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "deepseek-r1-distill-llama-70b"
       ];
-
       if (groqModels.includes(modelId)) {
         return await handleGroq(body, env);
       }
-
-      // 2. Handle Gemini models (Text & Gemini-Image)
       return await handleGemini(body, env);
     } catch (err) {
       return json({ error: err.message }, 500);
@@ -37,46 +34,41 @@ export default {
 };
 
 function json(obj, status) {
-  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
 }
+__name(json, "json");
 
-// --- GROQ HANDLER ---
 async function handleGroq(body, env) {
   const apiKey = env.GROQ_API_KEY;
   if (!apiKey) {
-    return json({ error: 'کلید API Groq در پنل کلودفلر تعریف نشده است.' }, 500);
+    return json({ error: "کلید API Groq در پنل کلودفلر تعریف نشده است." }, 500);
   }
-
-  const url = 'https://api.groq.com/openai/v1/chat/completions';
-  
-  const messages = body.contents
-    .map(msg => ({
-      role: msg.role === 'model' ? 'assistant' : 'user',
-      content: msg.parts && msg.parts[0]?.text ? msg.parts[0].text : ''
-    }))
-    .filter(msg => msg.content.trim() !== '');
+  const url = "https://api.groq.com/openai/v1/chat/completions";
+  const messages = body.contents.map((msg) => ({
+    role: msg.role === "model" ? "assistant" : "user",
+    content: msg.parts && msg.parts[0]?.text ? msg.parts[0].text : ""
+  })).filter((msg) => msg.content.trim() !== "");
 
   if (messages.length === 0) {
-    messages.push({ role: 'user', content: 'سلام' });
+    messages.push({ role: "user", content: "سلام" });
   }
-
   if (body.systemInstruction) {
     messages.unshift({
-      role: 'system',
+      role: "system",
       content: body.systemInstruction.parts[0].text
     });
   }
 
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify({
       model: body.model,
-      messages: messages,
-      temperature: body.generationConfig?.temperature || 1.0,
+      messages,
+      temperature: body.generationConfig?.temperature || 1,
       max_tokens: body.generationConfig?.maxOutputTokens || 2048,
       top_p: body.generationConfig?.topP || 0.95
     })
@@ -90,37 +82,30 @@ async function handleGroq(body, env) {
   return json({
     candidates: [{
       content: {
-        parts: [{ text: data.choices[0]?.message?.content || '' }]
+        parts: [{ text: data.choices[0]?.message?.content || "" }]
       }
     }]
   }, 200);
 }
+__name(handleGroq, "handleGroq");
 
-// --- GEMINI HANDLER ---
 async function handleGemini(body, env) {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
-    return json({ error: 'کلید API Gemini در پنل کلودفلر تعریف نشده است.' }, 500);
+    return json({ error: "کلید API Gemini در پنل کلودفلر تعریف نشده است." }, 500);
   }
-
-  // اگر در اینجا مدل imagen وجود داشت، باز هم خطا بده
-  if (body.model.startsWith('imagen-')) {
-     return json({ error: `مدل ${body.model} به مسیر اشتباه /api/chat ارسال شده است.` }, 400);
-  }
-
-  const model = body.model || 'gemini-3.6-flash';
+  const model = body.model || "gemini-3.6-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
-
   const upstreamBody = {
     contents: body.contents,
     systemInstruction: body.systemInstruction,
-    generationConfig: body.generationConfig,
+    generationConfig: body.generationConfig
   };
 
   const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(upstreamBody),
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(upstreamBody)
   });
 
   const data = await response.json();
@@ -128,16 +113,16 @@ async function handleGemini(body, env) {
     return json({ error: data.error || { message: `خطای Gemini API (کد ${response.status})` } }, response.status);
   }
 
-  const wantsAudio = body.generationConfig?.responseModalities?.includes('AUDIO');
+  const wantsAudio = body.generationConfig?.responseModalities?.includes("AUDIO");
   if (wantsAudio) {
     const parts = data.candidates?.[0]?.content?.parts;
     if (parts) {
       for (const part of parts) {
-        if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/L16')) {
+        if (part.inlineData && part.inlineData.mimeType?.startsWith("audio/L16")) {
           const rateMatch = /rate=(\d+)/.exec(part.inlineData.mimeType);
-          const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+          const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24e3;
           part.inlineData.data = pcmBase64ToWavBase64(part.inlineData.data, sampleRate);
-          part.inlineData.mimeType = 'audio/wav';
+          part.inlineData.mimeType = "audio/wav";
         }
       }
     }
@@ -145,8 +130,8 @@ async function handleGemini(body, env) {
 
   return json(data, 200);
 }
+__name(handleGemini, "handleGemini");
 
-// --- PCM -> WAV Helper ---
 function pcmBase64ToWavBase64(base64Pcm, sampleRate) {
   const pcmBytes = base64ToUint8Array(base64Pcm);
   const wavBuffer = buildWavHeader(pcmBytes.length, sampleRate);
@@ -155,6 +140,7 @@ function pcmBase64ToWavBase64(base64Pcm, sampleRate) {
   wavBytes.set(pcmBytes, wavBuffer.byteLength);
   return uint8ArrayToBase64(wavBytes);
 }
+__name(pcmBase64ToWavBase64, "pcmBase64ToWavBase64");
 
 function buildWavHeader(dataLength, sampleRate) {
   const buffer = new ArrayBuffer(44);
@@ -163,11 +149,10 @@ function buildWavHeader(dataLength, sampleRate) {
   const bitsPerSample = 16;
   const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
   const blockAlign = numChannels * (bitsPerSample / 8);
-
-  writeStr(view, 0, 'RIFF');
+  writeStr(view, 0, "RIFF");
   view.setUint32(4, 36 + dataLength, true);
-  writeStr(view, 8, 'WAVE');
-  writeStr(view, 12, 'fmt ');
+  writeStr(view, 8, "WAVE");
+  writeStr(view, 12, "fmt ");
   view.setUint32(16, 16, true);
   view.setUint16(20, 1, true);
   view.setUint16(22, numChannels, true);
@@ -175,14 +160,16 @@ function buildWavHeader(dataLength, sampleRate) {
   view.setUint32(28, byteRate, true);
   view.setUint16(32, blockAlign, true);
   view.setUint16(34, bitsPerSample, true);
-  writeStr(view, 36, 'data');
+  writeStr(view, 36, "data");
   view.setUint32(40, dataLength, true);
   return buffer;
 }
+__name(buildWavHeader, "buildWavHeader");
 
 function writeStr(view, offset, str) {
   for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
 }
+__name(writeStr, "writeStr");
 
 function base64ToUint8Array(base64) {
   const binary = atob(base64);
@@ -190,12 +177,18 @@ function base64ToUint8Array(base64) {
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
+__name(base64ToUint8Array, "base64ToUint8Array");
 
 function uint8ArrayToBase64(bytes) {
-  let binary = '';
-  const chunkSize = 0x8000;
+  let binary = "";
+  const chunkSize = 32768;
   for (let i = 0; i < bytes.length; i += chunkSize) {
     binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
 }
+__name(uint8ArrayToBase64, "uint8ArrayToBase64");
+
+export {
+  chat_default as default
+};
