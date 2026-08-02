@@ -13,7 +13,38 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 <body>
-
+<style>
+/* انیمیشن‌های جدید برای تولید تصویر مانند ChatGPT */
+.image-generating-bubble {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1));
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  animation: imagePulse 1.2s ease-in-out infinite;
+}
+.image-generating-bubble i {
+  font-size: 24px;
+  color: var(--accent-blue);
+  animation: spinSlow 1.6s linear infinite;
+}
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes imagePulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; background: rgba(37, 99, 235, 0.15); }
+}
+.gen-image {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  margin: 8px 0;
+  max-width: 100%;
+}
+</style>
 <div class="app-container">
 
   <!-- ============ SIDEBAR ============ -->
