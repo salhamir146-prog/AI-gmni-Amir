@@ -1,5 +1,5 @@
 // ==========================================================================
-// ChatGPT Classic — Gemini Edition — app.js (نسخه نهایی و بدون خطا)
+// ChatGPT Classic — Gemini Edition — app.js (نسخه کامل و بدون خطا)
 // ==========================================================================
 
 // ---- Model catalog (single source of truth) --------------------------------
@@ -23,13 +23,13 @@ const MODEL_CATALOG = [
 ];
 
 const CATEGORY_META = {
-  text:          { label: 'متنی',   icon: 'fa-comment-dots' },
-  'gemini-image':{ label: 'تصویر',  icon: 'fa-image' },
-  imagen:        { label: 'تصویر',  icon: 'fa-image' },
-  tts:           { label: 'صوتی',   icon: 'fa-microphone-lines' },
-  music:         { label: 'موسیقی', icon: 'fa-music' },
-  video:         { label: 'ویدیو',  icon: 'fa-clapperboard' },
-  unsupported:   { label: 'تخصصی',  icon: 'fa-triangle-exclamation' },
+  text:           { label: 'متنی',   icon: 'fa-comment-dots' },
+  'gemini-image': { label: 'تصویر',  icon: 'fa-image' },
+  imagen:         { label: 'تصویر',  icon: 'fa-image' },
+  tts:            { label: 'صوتی',   icon: 'fa-microphone-lines' },
+  music:          { label: 'موسیقی', icon: 'fa-music' },
+  video:          { label: 'ویدیو',  icon: 'fa-clapperboard' },
+  unsupported:    { label: 'تخصصی',  icon: 'fa-triangle-exclamation' },
 };
 
 const SUGGESTIONS = [
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const newChatBtn = $('newChatBtn');
   const saveChatBtn = $('saveChatBtn');
 
-  // File upload elements with new design
+  // File upload elements
   const fileUploadBtn = $('fileUploadBtn');
   const fileInput = $('fileInput');
   const fileBadge = $('fileBadge');
@@ -117,29 +117,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyTheme(state.theme);
 
-  // ---- Long-term memory (Cloudflare KV) ----
-  memoryEnabledToggle.checked = state.memoryEnabled;
-  memoryEnabledToggle.addEventListener('change', () => {
-    state.memoryEnabled = memoryEnabledToggle.checked;
-    localStorage.setItem('memoryEnabled', String(state.memoryEnabled));
-  });
+  // ---- Long-term memory (Cloudflare KV / Backend API) ----
+  if (memoryEnabledToggle) {
+    memoryEnabledToggle.checked = state.memoryEnabled;
+    memoryEnabledToggle.addEventListener('change', () => {
+      state.memoryEnabled = memoryEnabledToggle.checked;
+      localStorage.setItem('memoryEnabled', String(state.memoryEnabled));
+    });
+  }
 
-  clearMemoryBtn.addEventListener('click', async () => {
-    if (!confirm('حافظه بلندمدت برای همیشه پاک شود؟')) return;
-    clearMemoryBtn.disabled = true;
-    try {
-      const res = await fetch('/api/memory?uid=' + encodeURIComponent(clientId), { method: 'DELETE' });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || data.error);
-      state.longTermMemory = '';
-      memoryBox.value = '';
-      showToast('حافظه پاک شد', 'success');
-    } catch (err) {
-      showToast('حذف حافظه ناموفق بود: ' + err.message, 'error');
-    } finally {
-      clearMemoryBtn.disabled = false;
-    }
-  });
+  if (clearMemoryBtn) {
+    clearMemoryBtn.addEventListener('click', async () => {
+      if (!confirm('حافظه بلندمدت برای همیشه پاک شود؟')) return;
+      clearMemoryBtn.disabled = true;
+      try {
+        const res = await fetch('/api/memory?uid=' + encodeURIComponent(clientId), { method: 'DELETE' });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message || data.error);
+        state.longTermMemory = '';
+        if (memoryBox) memoryBox.value = '';
+        showToast('حافظه پاک شد', 'success');
+      } catch (err) {
+        showToast('حذف حافظه ناموفق بود: ' + err.message, 'error');
+      } finally {
+        clearMemoryBtn.disabled = false;
+      }
+    });
+  }
 
   async function loadMemory() {
     try {
@@ -147,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!data.error) {
         state.longTermMemory = data.memory || '';
-        memoryBox.value = state.longTermMemory;
+        if (memoryBox) memoryBox.value = state.longTermMemory;
       }
     } catch (err) { /* silently ignore */ }
   }
@@ -175,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gemini-flash-latest',
+          model: 'gemini-3.5-flash',
           contents: [{ role: 'user', parts: [{ text: extractPrompt }] }],
           generationConfig: { temperature: 0.2, maxOutputTokens: 500 },
         }),
@@ -184,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const newMemory = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
       if (newMemory === undefined || newMemory === state.longTermMemory) return;
       state.longTermMemory = newMemory;
-      memoryBox.value = newMemory;
+      if (memoryBox) memoryBox.value = newMemory;
       await fetch('/api/memory', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: clientId, memory: newMemory }),
@@ -196,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- Populate model <select> ----
   function renderModelOptions(filterCategory) {
+    if (!modelSelect) return;
     modelSelect.innerHTML = '';
     const groups = {};
     MODEL_CATALOG.forEach(m => {
@@ -219,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateModelDescBox() {
+    if (!modelDescBox || !modelSelect) return;
     const m = findModel(modelSelect.value);
     modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category].icon}"></i> ${escapeHtml(m.desc)}`;
   }
@@ -227,28 +233,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const categories = ['all', 'text', 'imagen', 'tts', 'music', 'video', 'unsupported'];
   const categoryLabels = { all: 'همه', text: '📝 متنی', imagen: '🎨 تصویر (Imagen)', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
   let activeCategory = 'all';
-  categories.forEach(cat => {
-    const pill = document.createElement('button');
-    pill.type = 'button';
-    pill.className = 'cat-pill' + (cat === 'all' ? ' active' : '');
-    pill.textContent = categoryLabels[cat];
-    pill.dataset.cat = cat;
-    pill.addEventListener('click', () => {
-      activeCategory = cat;
-      categoryPills.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p === pill));
-      renderModelOptions(cat);
-    });
-    categoryPills.appendChild(pill);
-  });
 
-  modelSelect.addEventListener('change', () => {
-    pendingModelId = modelSelect.value;
-    updateModelDescBox();
-    renderDynamicParams();
-  });
+  if (categoryPills) {
+    categoryPills.innerHTML = '';
+    categories.forEach(cat => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'cat-pill' + (cat === 'all' ? ' active' : '');
+      pill.textContent = categoryLabels[cat];
+      pill.dataset.cat = cat;
+      pill.addEventListener('click', () => {
+        activeCategory = cat;
+        categoryPills.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p === pill));
+        renderModelOptions(cat);
+      });
+      categoryPills.appendChild(pill);
+    });
+  }
+
+  if (modelSelect) {
+    modelSelect.addEventListener('change', () => {
+      pendingModelId = modelSelect.value;
+      updateModelDescBox();
+      renderDynamicParams();
+    });
+  }
 
   // ---- Dynamic params ----
   function renderDynamicParams() {
+    if (!dynamicParams) return;
     const m = findModel(pendingModelId);
     dynamicParams.innerHTML = '';
 
@@ -310,29 +323,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Init ----
   renderModelOptions('all');
   renderDynamicParams();
-  systemInstructionInput.value = state.systemPrompt;
+  if (systemInstructionInput) systemInstructionInput.value = state.systemPrompt;
   updateHeaderForModel(state.modelId);
-  suggestionChips.innerHTML = SUGGESTIONS.map(s => `<button class="suggestion-chip">${escapeHtml(s)}</button>`).join('');
-  suggestionChips.querySelectorAll('.suggestion-chip').forEach((chip, i) => {
-    chip.addEventListener('click', () => { promptInput.value = SUGGESTIONS[i]; promptInput.dispatchEvent(new Event('input')); promptInput.focus(); });
-  });
+
+  if (suggestionChips) {
+    suggestionChips.innerHTML = SUGGESTIONS.map(s => `<button class="suggestion-chip">${escapeHtml(s)}</button>`).join('');
+    suggestionChips.querySelectorAll('.suggestion-chip').forEach((chip, i) => {
+      chip.addEventListener('click', () => { promptInput.value = SUGGESTIONS[i]; promptInput.dispatchEvent(new Event('input')); promptInput.focus(); });
+    });
+  }
 
   // ---- Theme ----
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
-    themeToggleBtn.innerHTML = t === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    if (themeToggleBtn) themeToggleBtn.innerHTML = t === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
   }
-  themeToggleBtn.addEventListener('click', () => {
-    state.theme = state.theme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('theme', state.theme);
-    applyTheme(state.theme);
-  });
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', state.theme);
+      applyTheme(state.theme);
+    });
+  }
 
   // ---- Header / context bar ----
   function updateHeaderForModel(modelId) {
     const m = findModel(modelId);
-    currentModelName.textContent = m.name;
-    modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category].icon}"></i>`;
+    if (currentModelName) currentModelName.textContent = m.name;
+    if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category].icon}"></i>`;
+    if (!modelContextBar) return;
+
     if (m.category === 'unsupported') {
       modelContextBar.style.display = 'flex';
       modelContextBar.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> این مدل برای گفتگو مناسب نیست — لطفاً از تنظیمات یک مدل دیگر انتخاب کنید.`;
@@ -351,157 +371,153 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Textarea autosize ----
-  promptInput.addEventListener('input', () => {
-    promptInput.style.height = 'auto';
-    promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + 'px';
-    sendBtn.disabled = promptInput.value.trim() === '' && !state.uploadedFile;
-  });
+  if (promptInput) {
+    promptInput.addEventListener('input', () => {
+      promptInput.style.height = 'auto';
+      promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + 'px';
+      sendBtn.disabled = promptInput.value.trim() === '' && !state.uploadedFile;
+    });
+  }
 
   // ---- Sidebar ----
-  closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('closed'));
-  openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('closed'));
+  if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('closed'));
+  if (openSidebarBtn) openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('closed'));
 
   // ============================================================
-  // FILE UPLOAD — NEW DESIGN WITH BADGE & FILE NAME DISPLAY
+  // FILE UPLOAD HANDLERS
   // ============================================================
-  
-  // Clear uploaded file function
   function clearUploadedFile() {
     state.uploadedFile = null;
-    fileBadge.style.display = 'none';
+    if (fileBadge) fileBadge.style.display = 'none';
     if (fileNameDisplay) {
       fileNameDisplay.style.display = 'none';
       fileNameDisplay.innerHTML = '';
     }
-    fileUploadBtn.classList.remove('has-file');
-    promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
-    sendBtn.disabled = promptInput.value.trim() === '';
+    if (fileUploadBtn) fileUploadBtn.classList.remove('has-file');
+    if (promptInput) promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
+    if (sendBtn) sendBtn.disabled = promptInput.value.trim() === '';
   }
 
-  // Update file badge
   function updateFileBadge() {
     if (state.uploadedFile) {
-      fileBadge.textContent = '1';
-      fileBadge.style.display = 'flex';
-      fileUploadBtn.classList.add('has-file');
-      
-      // Show file name
+      if (fileBadge) {
+        fileBadge.textContent = '1';
+        fileBadge.style.display = 'flex';
+      }
+      if (fileUploadBtn) fileUploadBtn.classList.add('has-file');
+
       const file = state.uploadedFile;
       const fileIcon = file.mimeType.startsWith('image/') ? 'fa-image' : 'fa-file-lines';
-      fileNameDisplay.innerHTML = `
-        <i class="fa-regular ${fileIcon} file-icon"></i>
-        <span class="file-name-text" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
-        <button class="file-remove-btn" id="removeFileBtn" title="حذف فایل">
-          <i class="fa-regular fa-circle-xmark"></i>
-        </button>
-      `;
-      fileNameDisplay.style.display = 'flex';
-      
-      // Remove button handler
-      const removeBtn = document.getElementById('removeFileBtn');
-      if (removeBtn) {
-        removeBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          clearUploadedFile();
-        });
+      if (fileNameDisplay) {
+        fileNameDisplay.innerHTML = `
+          <i class="fa-regular ${fileIcon} file-icon"></i>
+          <span class="file-name-text" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+          <button class="file-remove-btn" id="removeFileBtn" title="حذف فایل">
+            <i class="fa-regular fa-circle-xmark"></i>
+          </button>
+        `;
+        fileNameDisplay.style.display = 'flex';
+
+        const removeBtn = $('removeFileBtn');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearUploadedFile();
+          });
+        }
       }
-      
-      promptInput.placeholder = `📎 ${file.name} — پیام خود را تایپ کنید...`;
+      if (promptInput) promptInput.placeholder = `📎 ${file.name} — پیام خود را تایپ کنید...`;
     } else {
-      fileBadge.style.display = 'none';
-      fileUploadBtn.classList.remove('has-file');
-      fileNameDisplay.style.display = 'none';
-      fileNameDisplay.innerHTML = '';
-      promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
+      clearUploadedFile();
     }
   }
 
-  // File upload button click
-  fileUploadBtn.addEventListener('click', () => fileInput.click());
+  if (fileUploadBtn) fileUploadBtn.addEventListener('click', () => fileInput && fileInput.click());
 
-  // File input change handler
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    // Check file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('حجم فایل نباید بیشتر از ۵ مگابایت باشد', 'error');
-      fileInput.value = '';
-      return;
-    }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('حجم فایل نباید بیشتر از ۵ مگابایت باشد', 'error');
+        fileInput.value = '';
+        return;
+      }
 
-    // Check if image or text file
-    const validTypes = ['image/', 'text/', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    const isValid = validTypes.some(type => file.type.startsWith(type) || file.type === type);
-    
-    if (!isValid) {
-      showToast('فقط تصاویر و فایل‌های متنی پشتیبانی می‌شوند', 'error');
-      fileInput.value = '';
-      return;
-    }
+      const validTypes = ['image/', 'text/', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const isValid = validTypes.some(type => file.type.startsWith(type) || file.type === type);
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target.result.split(',')[1];
-      state.uploadedFile = {
-        data: base64,
-        mimeType: file.type,
-        name: file.name,
-        size: file.size,
+      if (!isValid) {
+        showToast('فقط تصاویر و فایل‌های متنی پشتیبانی می‌شوند', 'error');
+        fileInput.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = ev.target.result.split(',')[1];
+        state.uploadedFile = {
+          data: base64,
+          mimeType: file.type,
+          name: file.name,
+          size: file.size,
+        };
+        updateFileBadge();
+        showToast(`فایل "${file.name}" آپلود شد ✅`, 'success');
+        if (sendBtn) sendBtn.disabled = false;
       };
-      
-      updateFileBadge();
-      showToast(`فایل "${file.name}" آپلود شد ✅`, 'success');
-      sendBtn.disabled = false;
-    };
-    reader.readAsDataURL(file);
-    fileInput.value = '';
-  });
+      reader.readAsDataURL(file);
+      fileInput.value = '';
+    });
+  }
 
   // ---- Modal ----
   function openModal() {
     pendingModelId = state.modelId;
     renderModelOptions(activeCategory);
     renderDynamicParams();
-    memoryBox.value = state.longTermMemory;
-    memoryEnabledToggle.checked = state.memoryEnabled;
-    settingsModal.classList.add('active');
+    if (memoryBox) memoryBox.value = state.longTermMemory;
+    if (memoryEnabledToggle) memoryEnabledToggle.checked = state.memoryEnabled;
+    if (settingsModal) settingsModal.classList.add('active');
   }
-  function closeModal() { settingsModal.classList.remove('active'); }
-  openSettingsLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-  settingsGearBtn.addEventListener('click', openModal);
-  modelDropdownBadge.addEventListener('click', openModal);
-  closeModalBtn.addEventListener('click', closeModal);
-  settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal(); });
+  function closeModal() { if (settingsModal) settingsModal.classList.remove('active'); }
+
+  if (openSettingsLink) openSettingsLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+  if (settingsGearBtn) settingsGearBtn.addEventListener('click', openModal);
+  if (modelDropdownBadge) modelDropdownBadge.addEventListener('click', openModal);
+  if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+  if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal(); });
 
   document.querySelectorAll('.modal-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
-      document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`).classList.add('active');
+      const targetPanel = document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`);
+      if (targetPanel) targetPanel.classList.add('active');
     });
   });
 
-  saveSettingsBtn.addEventListener('click', () => {
-    const prevCategory = findModel(state.modelId).category;
-    state.modelId = pendingModelId;
-    state.systemPrompt = systemInstructionInput.value;
-    localStorage.setItem('selectedModel', state.modelId);
-    localStorage.setItem('systemPrompt', state.systemPrompt);
-    localStorage.setItem('genParams', JSON.stringify(state.params));
-    updateHeaderForModel(state.modelId);
-    closeModal();
-    const m = findModel(state.modelId);
-    showToast(`مدل به «${m.name}» تغییر کرد`, 'success');
-    const newCategory = m.category;
-    if (newCategory !== prevCategory) {
-      appendSystemNotice(`سویچ به مدل ${m.name} (${CATEGORY_META[m.category].label}) انجام شد.`);
-    }
-  });
+  if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', () => {
+      const prevCategory = findModel(state.modelId).category;
+      state.modelId = pendingModelId;
+      state.systemPrompt = systemInstructionInput ? systemInstructionInput.value : '';
+      localStorage.setItem('selectedModel', state.modelId);
+      localStorage.setItem('systemPrompt', state.systemPrompt);
+      localStorage.setItem('genParams', JSON.stringify(state.params));
+      updateHeaderForModel(state.modelId);
+      closeModal();
+      const m = findModel(state.modelId);
+      showToast(`مدل به «${m.name}» تغییر کرد`, 'success');
+      if (m.category !== prevCategory) {
+        appendSystemNotice(`سویچ به مدل ${m.name} (${CATEGORY_META[m.category].label}) انجام شد.`);
+      }
+    });
+  }
 
-  testConnBtn.addEventListener('click', testConnection);
+  if (testConnBtn) testConnBtn.addEventListener('click', testConnection);
 
   // ---- Chat Management (Save/Load/Delete) ----
   function saveCurrentChat() {
@@ -545,17 +561,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadChatsList() {
-    const historyList = document.getElementById('chatHistoryList');
-    const emptyMsg = document.getElementById('historyEmpty');
-    const chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
+    const historyList = $('chatHistoryList');
+    const emptyMsg = $('historyEmpty');
+    if (!historyList) return;
 
+    const chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
     historyList.querySelectorAll('.history-item').forEach(el => el.remove());
 
     if (chats.length === 0) {
-      emptyMsg.style.display = 'block';
+      if (emptyMsg) emptyMsg.style.display = 'block';
       return;
     }
-    emptyMsg.style.display = 'none';
+    if (emptyMsg) emptyMsg.style.display = 'none';
 
     chats.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -579,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
       item.addEventListener('click', (e) => {
         if (e.target.closest('.delete-chat-btn')) return;
         loadChat(chat.id);
-        sidebar.classList.add('closed');
+        if (sidebar) sidebar.classList.add('closed');
       });
 
       const deleteBtn = item.querySelector('.delete-chat-btn');
@@ -602,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     messagesList.innerHTML = '';
     messagesList.style.display = 'flex';
-    welcomeContainer.style.display = 'none';
+    if (welcomeContainer) welcomeContainer.style.display = 'none';
 
     conversationHistory = chat.history || [];
     state.currentChatId = chat.id;
@@ -648,8 +665,10 @@ document.addEventListener('DOMContentLoaded', () => {
       conversationHistory = [];
       messagesList.innerHTML = '';
       messagesList.style.display = 'none';
-      welcomeContainer.style.display = 'flex';
-      welcomeContainer.style.flexDirection = 'column';
+      if (welcomeContainer) {
+        welcomeContainer.style.display = 'flex';
+        welcomeContainer.style.flexDirection = 'column';
+      }
     }
 
     loadChatsList();
@@ -689,36 +708,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- New Chat ----
-  newChatBtn.addEventListener('click', () => {
-    conversationHistory = [];
-    state.currentChatId = null;
-    lastSavedChat = null;
-    messagesList.innerHTML = '';
-    messagesList.style.display = 'none';
-    welcomeContainer.style.display = 'flex';
-    welcomeContainer.style.flexDirection = 'column';
-    clearUploadedFile();
-    loadChatsList();
-    sidebar.classList.add('closed');
-  });
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', () => {
+      conversationHistory = [];
+      state.currentChatId = null;
+      lastSavedChat = null;
+      messagesList.innerHTML = '';
+      messagesList.style.display = 'none';
+      if (welcomeContainer) {
+        welcomeContainer.style.display = 'flex';
+        welcomeContainer.style.flexDirection = 'column';
+      }
+      clearUploadedFile();
+      loadChatsList();
+      if (sidebar) sidebar.classList.add('closed');
+    });
+  }
 
   // ---- Save Chat Button ----
-  saveChatBtn.addEventListener('click', saveCurrentChat);
+  if (saveChatBtn) saveChatBtn.addEventListener('click', saveCurrentChat);
 
   // ---- Enter to send ----
-  promptInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (promptInput.value.trim() !== '' || state.uploadedFile) handleSend();
-    }
-  });
-  sendBtn.addEventListener('click', handleSend);
+  if (promptInput) {
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (promptInput.value.trim() !== '' || state.uploadedFile) handleSend();
+      }
+    });
+  }
+  if (sendBtn) sendBtn.addEventListener('click', handleSend);
 
   // ==========================================================================
-  // SEND LOGIC (اصلاح نهایی ترتیب شرط‌ها)
+  // SEND LOGIC
   // ==========================================================================
   async function handleSend() {
-    const text = promptInput.value.trim();
+    const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
 
     const model = findModel(state.modelId);
@@ -727,8 +752,8 @@ document.addEventListener('DOMContentLoaded', () => {
       state.currentChatId = 'chat_' + Date.now();
     }
 
-    welcomeContainer.style.display = 'none';
-    messagesList.style.display = 'flex';
+    if (welcomeContainer) welcomeContainer.style.display = 'none';
+    if (messagesList) messagesList.style.display = 'flex';
 
     let userParts = [];
     let displayText = text || '';
@@ -751,16 +776,18 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (userParts.length === 0) userParts.push({ text: displayText });
 
     appendUserMessage(displayText, state.uploadedFile);
-    promptInput.value = '';
-    promptInput.style.height = 'auto';
-    sendBtn.disabled = true;
+    if (promptInput) {
+      promptInput.value = '';
+      promptInput.style.height = 'auto';
+    }
+    if (sendBtn) sendBtn.disabled = true;
 
     const uploadedFileCopy = state.uploadedFile;
     clearUploadedFile();
 
     if (model.category === 'unsupported' || model.category === 'music') {
       appendNotice(`این مدل (${model.name}) در این نسخه پشتیبانی نمی‌شود.`);
-      sendBtn.disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
       return;
     }
 
@@ -772,15 +799,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userEntry.parts.length === 0) userEntry.parts.push({ text: displayText });
     conversationHistory.push(userEntry);
 
-    const { bubble, wrapper } = appendAssistantTyping();
+    const { bubble } = appendAssistantTyping();
 
     try {
-      // *** مهم‌ترین قسمت: ترتیب صحیح شرط‌ها (اول imagen، بعد بقیه) ***
       if (model.category === 'imagen') {
-        // درخواست تصویر به آدرس /api/imagen فرستاده می‌شود
         await handleImagenGenerate(model, text || displayText, bubble);
       } else if (model.category === 'text' || model.category === 'gemini-image') {
-        // درخواست متنی به آدرس /api/chat فرستاده می‌شود
         await handleGeminiGenerate(model, bubble);
       } else if (model.category === 'tts') {
         await handleTtsGenerate(model, text || displayText, bubble);
@@ -793,10 +817,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     scrollToBottom();
-    sendBtn.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 
-  // ---- API Handlers ----
+  // ==========================================================================
+  // API HANDLERS & GENERATION FUNCTIONS
+  // ==========================================================================
   async function handleGeminiGenerate(model, bubble) {
     const body = {
       model: model.id,
@@ -808,154 +834,169 @@ document.addEventListener('DOMContentLoaded', () => {
         maxOutputTokens: state.params.maxOutputTokens,
       },
     };
-    if (model.category === 'gemini-image') {
-      body.generationConfig.responseModalities = ['TEXT', 'IMAGE'];
-    }
-    const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await res.json();
-    if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
 
-    const parts = data.candidates?.[0]?.content?.parts;
-    if (!parts || !parts.length) return renderError(bubble, 'پاسخی از مدل دریافت نشد.');
-
-    let html = '';
-    let replyText = '';
-    parts.forEach(part => {
-      if (part.text) {
-        replyText += part.text;
-        html += renderMarkdown(part.text);
-      } else if (part.inlineData) {
-        html += `<img class="gen-image" src="data:${part.inlineData.mimeType};base64,${part.inlineData.data}" alt="تصویر تولیدشده">`;
-      }
-    });
-    bubble.innerHTML = html;
-    attachMessageEnhancements(bubble);
-    conversationHistory.push({ role: 'model', parts: replyText ? [{ text: replyText }] : [] });
-
-    if (model.category === 'text' && replyText) {
-      const lastUserText = conversationHistory[conversationHistory.length - 2]?.parts?.[0]?.text || '';
-      updateLongTermMemory(lastUserText, replyText);
-    }
-  }
-
-  async function handleImagenGenerate(model, prompt, bubble) {
-    bubble.innerHTML = `
-      <div class="image-generating-bubble">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        <span>در حال خلق تصویر با ${model.name}... ✨</span>
-      </div>
-    `;
-    
-    const res = await fetch('/api/imagen', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model.id, prompt, aspectRatio: state.params.imagenAspectRatio, sampleCount: state.params.imagenSampleCount }),
-    });
-    
-    const data = await res.json();
-    if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
-    
-    const predictions = data.predictions || [];
-    if (!predictions.length) return renderError(bubble, 'تصویری دریافت نشد.');
-    
-    bubble.innerHTML = predictions.map(p => `
-      <img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر تولیدشده" style="animation: floatIn 0.5s ease;">
-    `).join('');
-    
-    conversationHistory.push({ role: 'model', parts: [{ text: '[تصویر تولید شد]' }] });
-  }
-
-  async function handleTtsGenerate(model, text, bubble) {
     const res = await fetch('/api/chat', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model.id,
-        contents: [{ role: 'user', parts: [{ text }] }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: state.params.voiceName } } },
-        },
-      }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
+
     const data = await res.json();
-    if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
-    const audioPart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-    if (!audioPart) return renderError(bubble, 'صدایی دریافت نشد.');
-    bubble.innerHTML = `<audio controls src="data:audio/wav;base64,${audioPart.inlineData.data}"></audio>`;
-    conversationHistory.push({ role: 'model', parts: [{ text: '[پاسخ صوتی تولید شد]' }] });
-  }
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
+    }
 
-  async function handleVideoGenerate(model, prompt, bubble) {
-    bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-clapperboard"></i> در حال شروع تولید ویدیو... این فرآیند ممکن است چند دقیقه طول بکشد.</div>`;
-    const startRes = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model.id, prompt }) });
-    const startData = await startRes.json();
-    if (startData.error) return renderError(bubble, typeof startData.error === 'string' ? startData.error : (startData.error.message || 'خطا در شروع تولید ویدیو'));
-    const opName = startData.name;
-    if (!opName) return renderError(bubble, 'شناسه عملیات ویدیو دریافت نشد.');
+    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'پاسخی دریافت نشد.';
+    bubble.classList.remove('typing-dots');
+    bubble.innerHTML = renderMarkdown(replyText);
+    attachMessageEnhancements(bubble);
 
-    let attempts = 0;
-    const poll = async () => {
-      attempts++;
-      const pollRes = await fetch('/api/video?op=' + encodeURIComponent(opName));
-      const pollData = await pollRes.json();
-      if (pollData.error) return renderError(bubble, typeof pollData.error === 'string' ? pollData.error : 'خطا در بررسی وضعیت ویدیو');
-      if (pollData.done) {
-        const uri = pollData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri || pollData.response?.videos?.[0]?.uri;
-        if (uri) {
-          bubble.innerHTML = `<video controls class="gen-image" src="${uri}"></video><div class="param-hint" style="margin-top:6px;">لینک مستقیم ویدیو</div>`;
-        } else {
-          bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-circle-check"></i> عملیات کامل شد اما لینک ویدیو یافت نشد.</div>`;
-        }
-        conversationHistory.push({ role: 'model', parts: [{ text: '[ویدیو تولید شد]' }] });
-        scrollToBottom();
-        return;
-      }
-      if (attempts > 40) {
-        bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-clock"></i> تولید ویدیو هنوز تمام نشده؛ لطفاً بعداً بررسی کنید.</div>`;
-        return;
-      }
-      bubble.innerHTML = `<div class="notice-bubble"><i class="fa-solid fa-spinner fa-spin"></i> در حال تولید ویدیو... (بررسی ${attempts})</div>`;
-      setTimeout(poll, 8000);
-    };
-    setTimeout(poll, 5000);
-  }
+    conversationHistory.push({
+      role: 'model',
+      parts: [{ text: replyText }],
+    });
 
-  // ---- Connection test ----
-  async function testConnection() {
-    connStatus.className = 'user-plan';
-    connStatus.innerHTML = '<span class="dot"></span> در حال بررسی...';
-    testConnBtn.disabled = true;
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gemini-flash-latest', contents: [{ role: 'user', parts: [{ text: 'ping' }] }], generationConfig: { maxOutputTokens: 8 } }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || data.error);
-      connStatus.className = 'user-plan online';
-      connStatus.innerHTML = '<span class="dot"></span> متصل';
-      showToast('اتصال به Gemini برقرار است', 'success');
-    } catch (err) {
-      connStatus.className = 'user-plan offline';
-      connStatus.innerHTML = '<span class="dot"></span> قطع';
-      showToast('اتصال ناموفق بود — کلید API را بررسی کنید', 'error');
-    } finally {
-      testConnBtn.disabled = false;
+    const lastUserMsg = conversationHistory[conversationHistory.length - 2]?.parts?.find(p => p.text)?.text || '';
+    if (lastUserMsg && replyText) {
+      updateLongTermMemory(lastUserMsg, replyText);
     }
   }
-  testConnection();
 
-  // ---- Rendering helpers ----
+  async function handleImagenGenerate(model, promptText, bubble) {
+    const body = {
+      model: model.id,
+      prompt: promptText,
+      aspectRatio: state.params.imagenAspectRatio || '1:1',
+      sampleCount: state.params.imagenSampleCount || 1,
+    };
+
+    const res = await fetch('/api/imagen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
+    }
+
+    const images = data.images || data.predictions || [];
+    if (images.length === 0) {
+      throw new Error('هیچ تصوری توسط مدل تولید نشد.');
+    }
+
+    bubble.classList.remove('typing-dots');
+    let html = `<div class="generated-images-grid" style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">`;
+    images.forEach((img, idx) => {
+      const src = img.startsWith('data:') ? img : `data:image/png;base64,${img}`;
+      html += `
+        <div class="img-wrapper" style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border-color, #e5e7eb);">
+          <img src="${src}" alt="تصویر تولید شده ${idx + 1}" style="width:100%;height:auto;display:block;" />
+          <a href="${src}" download="generated-image-${idx + 1}.png" class="btn-download-img" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:6px 10px;border-radius:4px;text-decoration:none;" title="دانلود تصویر">
+            <i class="fa-solid fa-download"></i>
+          </a>
+        </div>`;
+    });
+    html += `</div>`;
+
+    bubble.innerHTML = html;
+
+    conversationHistory.push({
+      role: 'model',
+      parts: [{ text: `[تصویر تولید شده بر اساس پرامپت: "${promptText}"]` }],
+    });
+  }
+
+  async function handleTtsGenerate(model, promptText, bubble) {
+    const body = {
+      model: model.id,
+      text: promptText,
+      voice: state.params.voiceName || 'Kore',
+    };
+
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
+    }
+
+    const audioSrc = data.audioUrl || (data.audioContent ? `data:audio/mp3;base64,${data.audioContent}` : null);
+    if (!audioSrc) {
+      throw new Error('فایل صوتی دریافت نشد.');
+    }
+
+    bubble.classList.remove('typing-dots');
+    bubble.innerHTML = `
+      <div class="tts-player-container">
+        <p style="margin-bottom:8px;"><i class="fa-solid fa-volume-high"></i> خروجی صوتی (صدای <strong>${escapeHtml(state.params.voiceName)}</strong>):</p>
+        <audio controls src="${audioSrc}" style="width:100%;"></audio>
+      </div>`;
+
+    conversationHistory.push({
+      role: 'model',
+      parts: [{ text: `[صدا تولید شد: "${promptText}"]` }],
+    });
+  }
+
+  async function handleVideoGenerate(model, promptText, bubble) {
+    const body = {
+      model: model.id,
+      prompt: promptText,
+    };
+
+    const res = await fetch('/api/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
+    }
+
+    const videoUrl = data.videoUrl || (data.videoContent ? `data:video/mp4;base64,${data.videoContent}` : null);
+    if (!videoUrl) {
+      throw new Error('ویدیو تولید نشد.');
+    }
+
+    bubble.classList.remove('typing-dots');
+    bubble.innerHTML = `
+      <div class="video-player-container">
+        <video controls src="${videoUrl}" style="width:100%;border-radius:8px;"></video>
+      </div>`;
+
+    conversationHistory.push({
+      role: 'model',
+      parts: [{ text: `[ویدیو تولید شد: "${promptText}"]` }],
+    });
+  }
+
+  // ==========================================================================
+  // HELPER UI FUNCTIONS
+  // ==========================================================================
   function appendUserMessage(text, file) {
     const row = document.createElement('div');
     row.className = 'message-row user';
-    let content = escapeHtml(text);
+
+    let fileContentHtml = '';
     if (file && file.mimeType.startsWith('image/')) {
-      content += `<br><img class="gen-image" src="data:${file.mimeType};base64,${file.data}" alt="${escapeHtml(file.name)}" style="max-width:200px;max-height:200px;border-radius:8px;">`;
+      fileContentHtml = `<div class="user-attached-img" style="margin-bottom:8px;"><img src="data:${file.mimeType};base64,${file.data}" alt="${escapeHtml(file.name)}" style="max-width:240px;border-radius:8px;" /></div>`;
     }
+
     row.innerHTML = `
       <div class="avatar-mini"><i class="fa-solid fa-user"></i></div>
       <div class="message-col">
-        <div class="message-bubble">${content}</div>
+        <div class="message-bubble">
+          ${fileContentHtml}
+          <div>${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+        </div>
       </div>`;
     messagesList.appendChild(row);
     scrollToBottom();
@@ -967,89 +1008,131 @@ document.addEventListener('DOMContentLoaded', () => {
     row.innerHTML = `
       <div class="avatar-mini"><i class="fa-solid fa-sparkles"></i></div>
       <div class="message-col">
-        <div class="message-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>
-        <div class="msg-actions"></div>
+        <div class="message-bubble typing-dots">
+          <span>.</span><span>.</span><span>.</span>
+        </div>
       </div>`;
     messagesList.appendChild(row);
     scrollToBottom();
-    return { bubble: row.querySelector('.message-bubble'), wrapper: row };
+    const bubble = row.querySelector('.message-bubble');
+    return { bubble, wrapper: row };
   }
 
   function appendNotice(text) {
     const row = document.createElement('div');
-    row.className = 'message-row assistant';
-    row.innerHTML = `<div class="avatar-mini"><i class="fa-solid fa-sparkles"></i></div><div class="message-col"><div class="notice-bubble"><i class="fa-solid fa-circle-info"></i> ${escapeHtml(text)}</div></div>`;
+    row.className = 'message-row notice';
+    row.innerHTML = `<div class="notice-box" style="padding:10px 14px;background:rgba(234,179,8,0.1);border-radius:8px;color:#ca8a04;"><i class="fa-solid fa-circle-info"></i> ${escapeHtml(text)}</div>`;
     messagesList.appendChild(row);
     scrollToBottom();
   }
 
   function appendSystemNotice(text) {
-    if (messagesList.style.display === 'none') return;
-    appendNotice(text);
+    const row = document.createElement('div');
+    row.className = 'system-notice-line';
+    row.style.cssText = 'text-align:center;font-size:12px;color:var(--text-muted);margin:8px 0;';
+    row.innerHTML = `<span><i class="fa-solid fa-sliders"></i> ${escapeHtml(text)}</span>`;
+    messagesList.appendChild(row);
+    scrollToBottom();
   }
 
-  function renderError(bubble, msg) {
-    bubble.innerHTML = `<div class="error-bubble"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(msg)}</div>`;
-  }
-
-  function renderMarkdown(text) {
-    const raw = marked.parse(text);
-    return window.DOMPurify ? DOMPurify.sanitize(raw) : raw;
+  function renderError(bubble, errorMsg) {
+    bubble.classList.remove('typing-dots');
+    bubble.innerHTML = `<div class="error-msg-box" style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(errorMsg)}</div>`;
   }
 
   function attachMessageEnhancements(bubble) {
     bubble.querySelectorAll('pre').forEach(pre => {
-      if (pre.querySelector('.code-copy-btn')) return;
+      if (pre.querySelector('.copy-code-btn')) return;
+      pre.style.position = 'relative';
       const btn = document.createElement('button');
-      btn.className = 'code-copy-btn';
-      btn.textContent = 'Copy';
+      btn.className = 'copy-code-btn';
+      btn.style.cssText = 'position:absolute;top:6px;left:6px;padding:4px 8px;font-size:11px;border-radius:4px;background:rgba(255,255,255,0.2);border:none;cursor:pointer;color:inherit;';
+      btn.innerHTML = '<i class="fa-regular fa-copy"></i> کپی کد';
       btn.addEventListener('click', () => {
-        const code = pre.querySelector('code')?.textContent || pre.textContent;
+        const code = pre.querySelector('code')?.innerText || pre.innerText;
         navigator.clipboard.writeText(code).then(() => {
-          btn.textContent = 'Copied!';
-          setTimeout(() => (btn.textContent = 'Copy'), 1500);
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> کپی شد!';
+          setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> کپی کد'; }, 2000);
         });
       });
-      pre.style.position = 'relative';
       pre.appendChild(btn);
     });
-    const row = bubble.closest('.message-row');
-    const actions = row?.querySelector('.msg-actions');
-    if (actions && !actions.querySelector('.msg-action-btn')) {
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'msg-action-btn';
-      copyBtn.title = 'کپی پاسخ';
-      copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-      copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(bubble.innerText);
-        showToast('متن کپی شد', 'success');
-      });
-      actions.appendChild(copyBtn);
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+    if (typeof window.marked !== 'undefined') {
+      return window.marked.parse(text);
+    }
+    let html = escapeHtml(text);
+    html = html.replace(/```([\s\S]*?)```/g, (m, p1) => `<pre style="background:var(--code-bg, #1e1e1e);color:#fff;padding:12px;border-radius:6px;overflow-x:auto;"><code>${p1}</code></pre>`);
+    html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.06);padding:2px 4px;border-radius:4px;">$1</code>');
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+
+  function scrollToBottom() {
+    if (chatContent) {
+      chatContent.scrollTop = chatContent.scrollHeight;
     }
   }
 
-  function scrollToBottom() { chatContent.scrollTop = chatContent.scrollHeight; }
+  function showToast(msg, type = 'info') {
+    if (!toastStack) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.style.cssText = 'padding:10px 16px;margin-top:8px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);background:#333;color:#fff;display:flex;align-items:center;gap:8px;font-size:13px;transition:opacity 0.3s;';
+    if (type === 'success') toast.style.background = '#16a34a';
+    if (type === 'error') toast.style.background = '#dc2626';
+
+    const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info';
+    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${escapeHtml(msg)}</span>`;
+    toastStack.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  async function testConnection() {
+    if (!testConnBtn) return;
+    testConnBtn.disabled = true;
+    testConnBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال تست...';
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-3.5-flash',
+          contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+          generationConfig: { maxOutputTokens: 5 },
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || 'خطا در تست اتصال');
+      showToast('اتصال به سرور برقرار است ✅', 'success');
+      if (connStatus) connStatus.textContent = 'متصل';
+    } catch (err) {
+      showToast('خطا در اتصال: ' + err.message, 'error');
+      if (connStatus) connStatus.textContent = 'قطع';
+    } finally {
+      testConnBtn.disabled = false;
+      testConnBtn.innerHTML = 'تست اتصال';
+    }
+  }
 
   function escapeHtml(str) {
     if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
-  // ---- Toasts ----
-  function showToast(msg, type) {
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
-    el.innerHTML = `<i class="fa-solid ${icon}"></i> ${escapeHtml(msg)}`;
-    toastStack.appendChild(el);
-    setTimeout(() => {
-      el.classList.add('fade-out');
-      setTimeout(() => el.remove(), 300);
-    }, 2800);
-  }
-
-  // ---- Load saved chats on startup ----
   loadChatsList();
 });
