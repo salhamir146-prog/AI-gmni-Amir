@@ -34,7 +34,7 @@ function json(obj, status) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-// --- GROQ HANDLER ---
+// --- GROQ HANDLER (اصلاح شده برای جلوگیری از خطای role) ---
 async function handleGroq(body, env) {
   const apiKey = env.GROQ_API_KEY;
   if (!apiKey) {
@@ -43,11 +43,18 @@ async function handleGroq(body, env) {
 
   const url = 'https://api.groq.com/openai/v1/chat/completions';
   
-  // Convert Gemini format to Groq OpenAI format
-  const messages = body.contents.map(msg => ({
-    role: msg.role,
-    content: msg.parts[0]?.text || ''
-  }));
+  // Convert Gemini format to Groq OpenAI format and filter empty messages
+  const messages = body.contents
+    .map(msg => ({
+      role: msg.role === 'model' ? 'assistant' : 'user',
+      content: msg.parts && msg.parts[0]?.text ? msg.parts[0].text : ''
+    }))
+    .filter(msg => msg.content.trim() !== ''); // <--- این خط مهم است: پیام‌های خالی را حذف می‌کند!
+
+  // اگر همه پیام‌ها فیلتر شدند و آرایه خالی شد، یک پیام پیش‌فرض بفرست
+  if (messages.length === 0) {
+    messages.push({ role: 'user', content: 'سلام' });
+  }
 
   // Add system instruction if exists
   if (body.systemInstruction) {
