@@ -715,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
   sendBtn.addEventListener('click', handleSend);
 
   // ==========================================================================
-  // SEND LOGIC
+  // SEND LOGIC (اصلاح شده برای تشخیص صحیح Imagen)
   // ==========================================================================
   async function handleSend() {
     const text = promptInput.value.trim();
@@ -803,10 +803,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const { bubble, wrapper } = appendAssistantTyping();
 
     try {
-      if (model.category === 'text' || model.category === 'gemini-image') {
-        await handleGeminiGenerate(model, bubble, wrapper);
-      } else if (model.category === 'imagen') {
+      // این شرط‌ها اصلاح شده‌اند تا Imagen را به درستی تشخیص دهند
+      if (model.category === 'imagen') {
         await handleImagenGenerate(model, text || displayText, bubble, wrapper);
+      } else if (model.category === 'text' || model.category === 'gemini-image') {
+        await handleGeminiGenerate(model, bubble, wrapper);
       } else if (model.category === 'tts') {
         await handleTtsGenerate(model, text || displayText, bubble, wrapper);
       } else if (model.category === 'video') {
@@ -863,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ***** T U N G G A K A N   H A N D L E R   (اصلاح شده) *****
+  // ***** I M A G E N   H A N D L E R   (اصلاح شده) *****
   async function handleImagenGenerate(model, prompt, bubble) {
     // نمایش انیمیشن زیبای در حال ساخت
     bubble.innerHTML = `
