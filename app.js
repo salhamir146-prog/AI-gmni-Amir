@@ -4,56 +4,22 @@
 
 // ---- Model catalog (single source of truth) --------------------------------
 const MODEL_CATALOG = [
-  // ---- Text ----
-  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی', category: 'text', desc: 'جدیدترین مدل فلش — سریع، پنجره ۱M توکن' },
-  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: '📝 متنی', category: 'text', desc: 'مدل پایدار و سریع، ۱M توکن' },
-  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', group: '📝 متنی', category: 'text', desc: 'نسخه سبک، مصرف کم' },
-  { id: 'gemini-3.1-flash', name: 'Gemini 3.1 Flash', group: '📝 متنی', category: 'text', desc: 'مدل همه‌کاره' },
-  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', group: '📝 متنی', category: 'text', desc: 'سبک‌ترین نسخه' },
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', group: '📝 متنی', category: 'text', desc: 'نسخه حرفه‌ای و قدرتمند' },
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', group: '📝 متنی', category: 'text', desc: 'Pro جدیدتر' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', group: '📝 متنی', category: 'text', desc: 'Pro پایدار' },
-  { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', group: '📝 متنی', category: 'text', desc: 'نسخه سبک ۲.۵' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', group: '📝 متنی', category: 'text', desc: 'مدل فلش ۲.۰' },
-  { id: 'gemini-flash-latest', name: 'Gemini Flash Latest', group: '📝 متنی', category: 'text', desc: 'همیشه آخرین نسخه فلش' },
-  { id: 'gemini-pro-latest', name: 'Gemini Pro Latest', group: '📝 متنی', category: 'text', desc: 'همیشه آخرین نسخه Pro' },
-  { id: 'gemini-omni-flash-preview', name: 'Gemini Omni Flash Preview', group: '📝 متنی', category: 'text', desc: 'چندوجهی، ۱۳۱K توکن' },
-  { id: 'aqa', name: 'AQA', group: '📝 متنی', category: 'text', desc: 'پاسخ‌گویی مستند' },
-  { id: 'deep-research-preview', name: 'Deep Research', group: '📝 متنی', category: 'text', desc: 'تحقیق عمیق' },
-  { id: 'deep-research-pro-preview', name: 'Deep Research Pro', group: '📝 متنی', category: 'text', desc: 'تحقیق عمیق حرفه‌ای' },
-  { id: 'deep-research-max-preview', name: 'Deep Research Max', group: '📝 متنی', category: 'text', desc: 'تحقیق عمیق Max' },
-  { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', group: '📝 متنی', category: 'text', desc: 'مدل متن‌باز ۳۱ میلیاردی' },
-  { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B MoE IT', group: '📝 متنی', category: 'text', desc: 'مدل متن‌باز MoE' },
+  // ---- Text (Gemini) ----
+  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'جدیدترین مدل فلش — سریع' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل پایدار و سریع' },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', group: '📝 متنی (Gemini)', category: 'text', desc: 'نسخه سبک، مصرف کم' },
+  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', group: '📝 متنی (Gemini)', category: 'text', desc: 'سبک‌ترین نسخه ۳.۱' },
+  { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل متن‌باز ۳۱ میلیاردی' },
+  { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B MoE IT', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل متن‌باز MoE' },
 
-  // ---- Image (native Gemini — generateContent + responseModalities) ----
-  { id: 'gemini-3.1-flash-image', name: 'Nano Banana 2', group: '🎨 تصویر', category: 'gemini-image', desc: 'جدیدترین مدل تصویر Gemini' },
-  { id: 'gemini-3.1-flash-lite-image', name: 'Nano Banana 2 Lite', group: '🎨 تصویر', category: 'gemini-image', desc: 'نسخه سبک و ارزان' },
-  { id: 'gemini-3-pro-image-preview', name: 'Nano Banana Pro', group: '🎨 تصویر', category: 'gemini-image', desc: 'کیفیت حرفه‌ای' },
-  { id: 'gemini-2.5-flash-image', name: 'Nano Banana', group: '🎨 تصویر', category: 'gemini-image', desc: 'مدل پایدار و پرسرعت' },
+  // ---- Text (Groq) ----
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'قدرتمندترین مدل Groq' },
+  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', group: '📝 متنی (Groq)', category: 'text', desc: 'سریع و مقرون‌به‌صرفه' },
+  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'مدل استدلال عمیق' },
 
-  // ---- Image (Imagen — predict endpoint) ----
-  { id: 'imagen-4.0-generate-001', name: 'Imagen 4', group: '🎨 تصویر', category: 'imagen', desc: 'کیفیت بالا — endpoint مجزا' },
-  { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra', group: '🎨 تصویر', category: 'imagen', desc: 'بالاترین کیفیت' },
-  { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast', group: '🎨 تصویر', category: 'imagen', desc: 'سریع و مقرون‌به‌صرفه' },
-
-  // ---- Audio TTS ----
-  { id: 'gemini-2.5-flash-preview-tts', name: 'Gemini 2.5 Flash TTS', group: '🎵 صوتی', category: 'tts', desc: 'تبدیل متن به گفتار' },
-  { id: 'gemini-2.5-pro-preview-tts', name: 'Gemini 2.5 Pro TTS', group: '🎵 صوتی', category: 'tts', desc: 'کیفیت بالاتر' },
-  { id: 'gemini-3.1-flash-tts-preview', name: 'Gemini 3.1 Flash TTS', group: '🎵 صوتی', category: 'tts', desc: 'جدیدترین TTS' },
-
-  // ---- Music (not wired — different streaming protocol) ----
-  { id: 'lyria-3-clip-preview', name: 'Lyria 3 Clip', group: '🎶 موسیقی', category: 'music', desc: 'تولید قطعه کوتاه موسیقی' },
-  { id: 'lyria-3-pro-preview', name: 'Lyria 3 Pro', group: '🎶 موسیقی', category: 'music', desc: 'کیفیت حرفه‌ای' },
-
-  // ---- Video ----
-  { id: 'veo-3.1-generate-preview', name: 'Veo 3.1', group: '🎬 ویدیو', category: 'video', desc: 'تولید ویدیو — ممکن است چند دقیقه طول بکشد' },
-
-  // ---- Unsupported for chat ----
-  { id: 'gemini-embedding-2', name: 'Gemini Embedding 2', group: '🔍 تخصصی', category: 'unsupported', desc: 'فقط API — بردار متن' },
-  { id: 'gemini-embedding-001', name: 'Gemini Embedding 001', group: '🔍 تخصصی', category: 'unsupported', desc: 'فقط API — بردار متن' },
-  { id: 'gemini-robotics-er-2-preview', name: 'Gemini Robotics ER 2', group: '🔍 تخصصی', category: 'unsupported', desc: 'رباتیک' },
-  { id: 'antigravity-preview-05-2026', name: 'Antigravity Agent', group: '🔍 تخصصی', category: 'unsupported', desc: 'عامل هوشمند' },
-  { id: 'gemini-2.5-computer-use-preview', name: 'Computer Use', group: '🔍 تخصصی', category: 'unsupported', desc: 'کنترل کامپیوتر' },
+  // ---- Image (Imagen) ----
+  { id: 'imagen-3.0-generate-001', name: 'Imagen 3.0', group: '🎨 تصویر (Imagen)', category: 'imagen', desc: 'کیفیت بالا' },
+  { id: 'imagen-3.0-generate-002', name: 'Imagen 3.0 Ultra', group: '🎨 تصویر (Imagen)', category: 'imagen', desc: 'بهترین کیفیت' },
 ];
 
 const CATEGORY_META = {
@@ -258,8 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Category pills ----
-  const categories = ['all', 'text', 'gemini-image', 'imagen', 'tts', 'music', 'video', 'unsupported'];
-  const categoryLabels = { all: 'همه', text: '📝 متنی', 'gemini-image': '🎨 تصویر (Gemini)', imagen: '🎨 تصویر (Imagen)', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
+  const categories = ['all', 'text', 'imagen', 'tts', 'music', 'video', 'unsupported'];
+  const categoryLabels = { all: 'همه', text: '📝 متنی', imagen: '🎨 تصویر (Imagen)', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
   let activeCategory = 'all';
   categories.forEach(cat => {
     const pill = document.createElement('button');
@@ -376,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (m.category === 'tts') {
       modelContextBar.style.display = 'flex';
       modelContextBar.innerHTML = `<i class="fa-solid fa-microphone-lines"></i> حالت تبدیل متن به گفتار — صدا: ${escapeHtml(state.params.voiceName)}`;
-    } else if (m.category === 'gemini-image' || m.category === 'imagen') {
+    } else if (m.category === 'imagen' || m.category === 'gemini-image') {
       modelContextBar.style.display = 'flex';
       modelContextBar.innerHTML = `<i class="fa-solid fa-image"></i> حالت تولید تصویر فعال`;
     } else {
@@ -897,16 +863,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ***** T U N G G A K A N   H A N D L E R   (اصلاح شده) *****
   async function handleImagenGenerate(model, prompt, bubble) {
+    // نمایش انیمیشن زیبای در حال ساخت
+    bubble.innerHTML = `
+      <div class="image-generating-bubble">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>در حال خلق تصویر با ${model.name}... ✨</span>
+      </div>
+    `;
+    
     const res = await fetch('/api/imagen', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: model.id, prompt, aspectRatio: state.params.imagenAspectRatio, sampleCount: state.params.imagenSampleCount }),
     });
+    
     const data = await res.json();
     if (data.error) return renderError(bubble, typeof data.error === 'string' ? data.error : (data.error.message || 'خطای نامشخص'));
+    
     const predictions = data.predictions || [];
     if (!predictions.length) return renderError(bubble, 'تصویری دریافت نشد.');
-    bubble.innerHTML = predictions.map(p => `<img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر تولیدشده">`).join('');
+    
+    // نمایش تصاویر با انیمیشن زیبا
+    bubble.innerHTML = predictions.map(p => `
+      <img class="gen-image" src="data:image/png;base64,${p.bytesBase64Encoded}" alt="تصویر تولیدشده" style="animation: floatIn 0.5s ease;">
+    `).join('');
+    
     conversationHistory.push({ role: 'model', parts: [{ text: '[تصویر تولید شد]' }] });
   }
 
