@@ -739,47 +739,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (sendBtn) sendBtn.addEventListener('click', handleSend);
 
-
 // ==========================================================================
-  // SEND LOGIC (نسخه اصلاح‌شده و هوشمند)
-  // ==========================================================================
-// ==========================================================================
-  // SEND LOGIC (نسخه کامل و هوشمند)
+  // SEND LOGIC (نسخه هوشمند و ایزوله)
   // ==========================================================================
   async function handleSend() {
     const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
 
-    const model = findModel(state.modelId);
+    const model = findModel(state.modelId) || { id: state.modelId, category: '' };
+    const currentModelId = (model.id || state.modelId || '').toLowerCase();
 
-    if (conversationHistory.length === 0 && !state.currentChatId) {
-      state.currentChatId = 'chat_' + Date.now();
-    }
+    // 🎯 تشخیص ۱۰۰٪ قطعی مدل‌های Imagen
+    const isImagen = currentModelId.includes('imagen') || model.category === 'imagen';
 
     if (welcomeContainer) welcomeContainer.style.display = 'none';
     if (messagesList) messagesList.style.display = 'flex';
 
-    let userParts = [];
-    let displayText = text || '';
-
-    if (state.uploadedFile) {
-      const file = state.uploadedFile;
-      if (file.mimeType.startsWith('image/')) {
-        displayText = text || `[تصویر: ${file.name}]`;
-        userParts.push({ inlineData: { mimeType: file.mimeType, data: file.data } });
-      } else {
-        displayText = text ? `${text}\n\n📎 [فایل: ${file.name}]` : `📎 [فایل: ${file.name}]`;
-        try {
-          const decoded = atob(file.data);
-          displayText += `\n\n--- محتوای فایل ---\n${decoded.substring(0, 4000)}${decoded.length > 4000 ? '...' : ''}`;
-        } catch (e) { /* Binary file */ }
-      }
-    }
-
-    if (text) userParts.push({ text: text });
-    else if (userParts.length === 0) userParts.push({ text: displayText });
-
+    let displayText = text || (state.uploadedFile ? `[فایل: ${state.uploadedFile.name}]` : '');
     appendUserMessage(displayText, state.uploadedFile);
+
     if (promptInput) {
       promptInput.value = '';
       promptInput.style.height = 'auto';
@@ -789,40 +767,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadedFileCopy = state.uploadedFile;
     clearUploadedFile();
 
-    if (model.category === 'unsupported' || model.category === 'music') {
-      appendNotice(`این مدل (${model.name}) در این نسخه پشتیبانی نمی‌شود.`);
-      if (sendBtn) sendBtn.disabled = false;
-      return;
-    }
-
-    const userEntry = { role: 'user', parts: [] };
-    if (uploadedFileCopy && uploadedFileCopy.mimeType.startsWith('image/')) {
-      userEntry.parts.push({ inlineData: { mimeType: uploadedFileCopy.mimeType, data: uploadedFileCopy.data } });
-    }
-    if (text) userEntry.parts.push({ text: text });
-    if (userEntry.parts.length === 0) userEntry.parts.push({ text: displayText });
-    conversationHistory.push(userEntry);
-
     const { bubble } = appendAssistantTyping();
-
-    // 🎯 هدایت هوشمند مدل
-    const isImagen = model.category === 'imagen' || model.id.includes('imagen');
-    const isTts = model.category === 'tts' || model.id.includes('tts');
-    const isVideo = model.category === 'video' || model.id.includes('video');
 
     try {
       if (isImagen) {
+        // 🚀 هدایت مستقیم و بدون خطا به اندپوینت /api/imagen
         await handleImagenGenerate(model, text || displayText, bubble);
-      } else if (isTts) {
-        await handleTtsGenerate(model, text || displayText, bubble);
-      } else if (isVideo) {
-        await handleVideoGenerate(model, text || displayText, bubble);
       } else {
+        // 💬 هدایت به چت متنی (/api/chat)
+        const userEntry = { role: 'user', parts: [{ text: text || displayText }] };
+        conversationHistory.push(userEntry);
         await handleGeminiGenerate(model, bubble);
       }
       autoSaveChat();
     } catch (err) {
-      renderError(bubble, 'خطا در ارتباط با سرور: ' + err.message);
+      renderError(bubble, err.message);
     }
 
     scrollToBottom();
