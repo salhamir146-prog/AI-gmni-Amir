@@ -739,8 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (sendBtn) sendBtn.addEventListener('click', handleSend);
 
-  // ==========================================================================
-  // SEND LOGIC
+
+// ==========================================================================
+  // SEND LOGIC (نسخه اصلاح‌شده و هوشمند)
   // ==========================================================================
   async function handleSend() {
     const text = promptInput ? promptInput.value.trim() : '';
@@ -801,15 +802,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { bubble } = appendAssistantTyping();
 
+    // 🎯 تغییر اصلی اینجاست: بررسی هوشمند مدل بر اساس نام و دسته‌بندی
+    const isImagen = model.category === 'imagen' || model.id.includes('imagen');
+    const isTts = model.category === 'tts' || model.id.includes('tts');
+    const isVideo = model.category === 'video' || model.id.includes('video');
+
     try {
-      if (model.category === 'imagen') {
+      if (isImagen) {
         await handleImagenGenerate(model, text || displayText, bubble);
-      } else if (model.category === 'text' || model.category === 'gemini-image') {
-        await handleGeminiGenerate(model, bubble);
-      } else if (model.category === 'tts') {
+      } else if (isTts) {
         await handleTtsGenerate(model, text || displayText, bubble);
-      } else if (model.category === 'video') {
+      } else if (isVideo) {
         await handleVideoGenerate(model, text || displayText, bubble);
+      } else {
+        await handleGeminiGenerate(model, bubble);
       }
       autoSaveChat();
     } catch (err) {
