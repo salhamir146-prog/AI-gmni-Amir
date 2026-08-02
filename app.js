@@ -746,11 +746,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
 
-    const model = findModel(state.modelId) || { id: state.modelId, category: '' };
-    const currentModelId = (model.id || state.modelId || '').toLowerCase();
+    // 🎯 گرفتن اسم مدل به‌صورت مستقیم از المنت UI یا state جهت جلوگیری از خطا
+    const modelSelectEl = document.getElementById('modelSelect');
+    const activeModelId = (modelSelectEl ? modelSelectEl.value : state.modelId || '').toLowerCase();
 
-    // 🎯 تشخیص ۱۰۰٪ قطعی مدل‌های Imagen
-    const isImagen = currentModelId.includes('imagen') || model.category === 'imagen';
+    // 🛡️ تشخیص قطعی مدل‌های تصویرساز Imagen
+    const isImagen = activeModelId.includes('imagen');
 
     if (welcomeContainer) welcomeContainer.style.display = 'none';
     if (messagesList) messagesList.style.display = 'flex';
@@ -771,13 +772,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (isImagen) {
-        // 🚀 هدایت مستقیم و بدون خطا به اندپوینت /api/imagen
-        await handleImagenGenerate(model, text || displayText, bubble);
+        // 🎨 ارسال به اندپوینت مخصوص تصویر
+        const modelObj = findModel(activeModelId) || { id: activeModelId };
+        await handleImagenGenerate(modelObj, text || displayText, bubble);
       } else {
-        // 💬 هدایت به چت متنی (/api/chat)
+        // 💬 ارسال به اندپوینت چت متنی
+        const modelObj = findModel(activeModelId) || { id: activeModelId };
         const userEntry = { role: 'user', parts: [{ text: text || displayText }] };
         conversationHistory.push(userEntry);
-        await handleGeminiGenerate(model, bubble);
+        await handleGeminiGenerate(modelObj, bubble);
       }
       autoSaveChat();
     } catch (err) {
@@ -787,7 +790,6 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
     if (sendBtn) sendBtn.disabled = false;
   }
-
   // ==========================================================================
   // GENERATION HANDLERS
   // ==========================================================================
@@ -983,7 +985,7 @@ document.addEventListener('DOMContentLoaded', () => {
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(bubble.innerText);
       showToast('متن کپی شد', 'success');
-    });
+    });4
     const actions = bubble.parentElement.querySelector('.msg-actions') || bubble.parentElement;
     actions.appendChild(copyBtn);
   }
