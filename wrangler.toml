@@ -1,9 +1,0 @@
-name = "ai-gmni-amir"
-main = "functions/api/chat.js"
-compatibility_date = "2026-08-01"
-
-[assets]
-directory = "./"
-
-[[kv_namespaces]]
-binding = "USER_MEMORY"
