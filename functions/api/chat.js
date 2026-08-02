@@ -1,5 +1,6 @@
 // Cloudflare Worker — /api/chat
 // Supports Gemini (text & image) and Groq (Llama & DeepSeek)
+// Version 2.0 - Debugging enabled
 
 export default {
   async fetch(request, env, ctx) {
@@ -10,6 +11,11 @@ export default {
     try {
       const body = await request.json();
       const modelId = body.model || 'gemini-3.6-flash';
+
+      // اگر مدل تصویر (Imagen) به اشتباه به اینجا ارسال شد، فوراً خطا بده!
+      if (modelId.startsWith('imagen-')) {
+        return json({ error: `خطای بحرانی: مدل ${modelId} نباید به /api/chat ارسال می‌شد. لطفاً در app.js بررسی کنید که شرط 'imagen' به '/api/imagen' برود.` }, 400);
+      }
 
       // 1. Check if it's a Groq model
       const groqModels = [
@@ -34,7 +40,7 @@ function json(obj, status) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-// --- GROQ HANDLER (اصلاح شده برای جلوگیری از خطای role) ---
+// --- GROQ HANDLER ---
 async function handleGroq(body, env) {
   const apiKey = env.GROQ_API_KEY;
   if (!apiKey) {
@@ -43,20 +49,17 @@ async function handleGroq(body, env) {
 
   const url = 'https://api.groq.com/openai/v1/chat/completions';
   
-  // Convert Gemini format to Groq OpenAI format and filter empty messages
   const messages = body.contents
     .map(msg => ({
       role: msg.role === 'model' ? 'assistant' : 'user',
       content: msg.parts && msg.parts[0]?.text ? msg.parts[0].text : ''
     }))
-    .filter(msg => msg.content.trim() !== ''); // <--- این خط مهم است: پیام‌های خالی را حذف می‌کند!
+    .filter(msg => msg.content.trim() !== '');
 
-  // اگر همه پیام‌ها فیلتر شدند و آرایه خالی شد، یک پیام پیش‌فرض بفرست
   if (messages.length === 0) {
     messages.push({ role: 'user', content: 'سلام' });
   }
 
-  // Add system instruction if exists
   if (body.systemInstruction) {
     messages.unshift({
       role: 'system',
@@ -84,7 +87,6 @@ async function handleGroq(body, env) {
     return json({ error: data.error || { message: `خطای Groq API (کد ${response.status})` } }, response.status);
   }
 
-  // Transform Groq response to Gemini-like structure for the frontend
   return json({
     candidates: [{
       content: {
@@ -99,6 +101,11 @@ async function handleGemini(body, env) {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     return json({ error: 'کلید API Gemini در پنل کلودفلر تعریف نشده است.' }, 500);
+  }
+
+  // اگر در اینجا مدل imagen وجود داشت، باز هم خطا بده
+  if (body.model.startsWith('imagen-')) {
+     return json({ error: `مدل ${body.model} به مسیر اشتباه /api/chat ارسال شده است.` }, 400);
   }
 
   const model = body.model || 'gemini-3.6-flash';
@@ -121,7 +128,6 @@ async function handleGemini(body, env) {
     return json({ error: data.error || { message: `خطای Gemini API (کد ${response.status})` } }, response.status);
   }
 
-  // Handle Audio TTS (PCM -> WAV)
   const wantsAudio = body.generationConfig?.responseModalities?.includes('AUDIO');
   if (wantsAudio) {
     const parts = data.candidates?.[0]?.content?.parts;
