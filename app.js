@@ -2,15 +2,20 @@
 // ChatGPT Classic — Gemini Edition — app.js
 // ==========================================================================
 
-// توابع جهانی کپی و دانلود کدهای داخل کادر (مشابه ChatGPT)
+// توابع جهانی کپی و دانلود کد داخل کادر
 window.copyCodeSnippet = function(btn) {
   const container = btn.closest('.code-block-container');
   if (!container) return;
   const code = container.querySelector('code').innerText;
   navigator.clipboard.writeText(code).then(() => {
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-check"></i> کپی شد!';
-    setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+    const span = btn.querySelector('span');
+    const originalText = span ? span.textContent : 'کپی کد';
+    if (span) span.textContent = 'کپی شد!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      if (span) span.textContent = originalText;
+      btn.classList.remove('copied');
+    }, 2000);
   });
 };
 
@@ -37,7 +42,6 @@ window.downloadCodeSnippet = function(btn) {
 
 // ---- Model catalog -------------------------------------------------------
 const MODEL_CATALOG = [
-  // ---- Text (Gemini) ----
   { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'جدیدترین مدل فلش — سریع' },
   { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل پایدار و دقیق' },
   { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', group: '📝 متنی (Gemini)', category: 'text', desc: 'نسخه سبک، مصرف کم' },
@@ -45,7 +49,6 @@ const MODEL_CATALOG = [
   { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل متن‌باز ۳۱ میلیاردی' },
   { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B MoE IT', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل متن‌باز MoE' },
 
-  // ---- Text (Groq) ----
   { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'قدرتمندترین مدل Groq' },
   { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', group: '📝 متنی (Groq)', category: 'text', desc: 'سریع و مقرون‌به‌صرفه' },
   { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'مدل استدلال عمیق' },
@@ -68,8 +71,12 @@ const SUGGESTIONS = [
 
 function findModel(id) { return MODEL_CATALOG.find(m => m.id === id) || MODEL_CATALOG[0]; }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  // ---- DOM refs ----
   const $ = (id) => document.getElementById(id);
   const promptInput = $('promptInput');
   const sendBtn = $('sendBtn');
@@ -111,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileBadge = $('fileBadge');
   const fileNameDisplay = $('fileNameDisplay');
 
-  // ---- State ----
   let state = {
     modelId: localStorage.getItem('selectedModel') || 'gemini-3.6-flash',
     systemPrompt: localStorage.getItem('systemPrompt') || '',
@@ -138,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyTheme(state.theme);
 
-  // ---- Memory ----
   if (memoryEnabledToggle) {
     memoryEnabledToggle.checked = state.memoryEnabled;
     memoryEnabledToggle.addEventListener('change', () => {
@@ -216,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ---- Model Select ----
   function renderModelOptions(filterCategory) {
     if (!modelSelect) return;
     modelSelect.innerHTML = '';
@@ -333,22 +337,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const m = findModel(modelId);
     if (currentModelName) currentModelName.textContent = m.name;
     if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-comment-dots'}"></i>`;
-    if (!modelContextBar) return;
-    modelContextBar.style.display = 'none';
+    if (modelContextBar) modelContextBar.style.display = 'none';
   }
 
   if (promptInput) {
     promptInput.addEventListener('input', () => {
       promptInput.style.height = 'auto';
       promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + 'px';
-      sendBtn.disabled = promptInput.value.trim() === '' && !state.uploadedFile;
+      if (sendBtn) sendBtn.disabled = promptInput.value.trim() === '' && !state.uploadedFile;
     });
   }
 
   if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('closed'));
   if (openSidebarBtn) openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('closed'));
 
-  // ---- File Upload ----
   function clearUploadedFile() {
     state.uploadedFile = null;
     if (fileBadge) fileBadge.style.display = 'none';
@@ -359,40 +361,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fileUploadBtn) fileUploadBtn.classList.remove('has-file');
     if (promptInput) promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
     if (sendBtn) sendBtn.disabled = promptInput.value.trim() === '';
-  }
-
-  function updateFileBadge() {
-    if (state.uploadedFile) {
-      if (fileBadge) {
-        fileBadge.textContent = '1';
-        fileBadge.style.display = 'flex';
-      }
-      if (fileUploadBtn) fileUploadBtn.classList.add('has-file');
-
-      const file = state.uploadedFile;
-      const fileIcon = file.mimeType.startsWith('image/') ? 'fa-image' : 'fa-file-code';
-      if (fileNameDisplay) {
-        fileNameDisplay.innerHTML = `
-          <i class="fa-regular ${fileIcon} file-icon"></i>
-          <span class="file-name-text" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
-          <button class="file-remove-btn" id="removeFileBtn" title="حذف فایل">
-            <i class="fa-regular fa-circle-xmark"></i>
-          </button>
-        `;
-        fileNameDisplay.style.display = 'flex';
-
-        const removeBtn = $('removeFileBtn');
-        if (removeBtn) {
-          removeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            clearUploadedFile();
-          });
-        }
-      }
-      if (promptInput) promptInput.placeholder = `📎 ${file.name} — پیام خود را بنویسید...`;
-    } else {
-      clearUploadedFile();
-    }
   }
 
   if (fileUploadBtn) fileUploadBtn.addEventListener('click', () => fileInput && fileInput.click());
@@ -417,16 +385,33 @@ document.addEventListener('DOMContentLoaded', () => {
           name: file.name,
           size: file.size,
         };
-        updateFileBadge();
-        showToast(`فایل "${file.name}" آپلود شد ✅`, 'success');
+        
+        if (fileBadge) {
+          fileBadge.textContent = '1';
+          fileBadge.style.display = 'flex';
+        }
+        if (fileUploadBtn) fileUploadBtn.classList.add('has-file');
+
+        if (fileNameDisplay) {
+          const fileIcon = file.type.startsWith('image/') ? 'fa-image' : 'fa-file-code';
+          fileNameDisplay.innerHTML = `
+            <i class="fa-regular ${fileIcon}"></i>
+            <span>${escapeHtml(file.name)}</span>
+            <button id="removeFileBtn"><i class="fa-regular fa-circle-xmark"></i></button>
+          `;
+          fileNameDisplay.style.display = 'flex';
+          const rBtn = $('removeFileBtn');
+          if (rBtn) rBtn.addEventListener('click', (e) => { e.stopPropagation(); clearUploadedFile(); });
+        }
+        if (promptInput) promptInput.placeholder = `📎 ${file.name} — پیام خود را بنویسید...`;
         if (sendBtn) sendBtn.disabled = false;
+        showToast(`فایل "${file.name}" آماده ارسال است`, 'success');
       };
       reader.readAsDataURL(file);
       fileInput.value = '';
     });
   }
 
-  // ---- Modal ----
   function openModal() {
     pendingModelId = state.modelId;
     renderModelOptions(activeCategory);
@@ -468,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (testConnBtn) testConnBtn.addEventListener('click', testConnection);
 
-  // ---- Save/Load Chat ----
   function saveCurrentChat() {
     if (conversationHistory.length === 0) return;
     const title = getChatTitle();
@@ -654,7 +638,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (sendBtn) sendBtn.addEventListener('click', handleSend);
 
-  // ---- Handle Send ----
   async function handleSend() {
     const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
@@ -728,28 +711,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ---- Render Markdown with ChatGPT Code Blocks ----
+  // ---- رندر مارک‌داون + کادرهای کد ChatGPT ----
   function renderMarkdown(text) {
     if (!text) return '';
 
     const codeBlocks = [];
 
-    // ۱. استخراج کدهای سه بک‌تیک (```lang ... ```)
-    let html = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+    // ۱. جداسازی بلوک‌های کد (``` ... ```)
+    let processed = text.replace(/```(\w*)\r?\n?([\s\S]*?)```/g, (match, lang, code) => {
       const index = codeBlocks.length;
       const language = lang.trim() || 'code';
       const cleanCode = code.trim();
 
       const blockHtml = `
-        <div class="code-block-container">
+        <div class="code-block-container" dir="ltr">
           <div class="code-block-header">
             <span class="code-lang">${escapeHtml(language)}</span>
             <div class="code-actions">
-              <button class="code-btn download-btn" onclick="downloadCodeSnippet(this)" title="دانلود فایل">
-                <i class="fa-solid fa-download"></i> دانلود
+              <button type="button" class="code-btn download-btn" onclick="downloadCodeSnippet(this)" title="دانلود فایل">
+                <i class="fa-solid fa-download"></i> <span>دانلود</span>
               </button>
-              <button class="code-btn copy-btn" onclick="copyCodeSnippet(this)" title="کپی کد">
-                <i class="fa-regular fa-copy"></i> کپی کد
+              <button type="button" class="code-btn copy-btn" onclick="copyCodeSnippet(this)" title="کپی کد">
+                <i class="fa-regular fa-copy"></i> <span>کپی کد</span>
               </button>
             </div>
           </div>
@@ -760,41 +743,51 @@ document.addEventListener('DOMContentLoaded', () => {
       return `___CODE_BLOCK_${index}___`;
     });
 
-    // ۲. امن‌سازی متن عادی
-    html = escapeHtml(html);
+    // ۲. امن‌سازی متن معمولی
+    processed = escapeHtml(processed);
 
-    // ۳. کدهای درون‌خطی `code`
-    html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+    // ۳. کدهای درون‌خطی `...`
+    processed = processed.replace(/`([^`]+)`/g, '<code class="inline-code" dir="ltr">$1</code>');
 
-    // ۴. بولد و ایتالیک
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // ۴. فرمت متون (بولد، ایتالیک)
+    processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-    // ۵. تبدیل خطوط جدید متن به <br>
-    html = html.replace(/\n/g, '<br>');
+    // ۵. تبدیل خطوط جدید به <br>
+    processed = processed.replace(/\n/g, '<br>');
 
-    // ۶. جاگذاری مجدد کادرهای کد
+    // ۶. جایگذاری کادرهای کد آماده شده
     codeBlocks.forEach((block, index) => {
-      html = html.replace(`___CODE_BLOCK_${index}___`, block);
+      processed = processed.replace(`___CODE_BLOCK_${index}___`, block);
     });
 
-    return html;
+    return processed;
   }
 
-  // دکمه کپی کوچک و جمع‌وجور زیر پیام
+  // دکمه کپی کوچک، شیک و جمع‌وجور زیر پاسخ‌ها
   function attachMessageEnhancements(bubble) {
-    const actions = bubble.parentElement.querySelector('.msg-actions') || bubble.parentElement;
-    
-    const existingBtn = actions.querySelector('.copy-msg-btn');
-    if (existingBtn) existingBtn.remove();
+    const messageCol = bubble.closest('.message-col');
+    if (!messageCol) return;
+
+    let actions = messageCol.querySelector('.msg-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.className = 'msg-actions';
+      messageCol.appendChild(actions);
+    }
+    actions.innerHTML = '';
 
     const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
     copyBtn.className = 'copy-msg-btn';
     copyBtn.title = 'کپی کل متن پاسخ';
     copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> <span>کپی</span>';
     
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(bubble.innerText);
+      const span = copyBtn.querySelector('span');
+      if (span) span.textContent = 'کپی شد!';
+      setTimeout(() => { if (span) span.textContent = 'کپی'; }, 2000);
       showToast('متن پاسخ کپی شد', 'success');
     });
 
@@ -851,11 +844,6 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.innerHTML = escapeHtml(text);
     toastStack.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   async function testConnection() {
