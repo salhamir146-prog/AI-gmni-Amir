@@ -1,10 +1,11 @@
 /* ==========================================================================
-   ChatGPT Classic — Gemini Edition — Full Custom Stylesheet
+   ChatGPT Classic — Gemini Edition — Full Fixed Layout Stylesheet
    ========================================================================== */
 
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
+  --modal-bg: #ffffff;
   --sidebar-bg: #f3f4f6;
   --border-color: #e5e7eb;
   --text-main: #111827;
@@ -21,6 +22,7 @@
 [data-theme="dark"] {
   --bg-primary: #212121;
   --bg-secondary: #171717;
+  --modal-bg: #212121;
   --sidebar-bg: #171717;
   --border-color: #2f2f2f;
   --text-main: #ececec;
@@ -59,18 +61,20 @@ body {
   flex-direction: column;
   transition: transform 0.3s ease;
   z-index: 100;
+  height: 100vh;
 }
 
 #sidebar.closed {
   transform: translateX(100%);
   position: absolute;
-  height: 100%;
 }
 
 .sidebar-header {
   padding: 12px;
   display: flex;
+  align-items: center;
   gap: 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .btn-new-chat {
@@ -83,6 +87,7 @@ body {
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 14px;
 }
@@ -139,6 +144,31 @@ body {
   justify-content: space-between;
   padding: 0 16px;
   background-color: var(--bg-primary);
+  z-index: 10;
+}
+
+.top-bar-left, .top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.icon-btn:hover {
+  background-color: rgba(0,0,0,0.05);
 }
 
 .model-badge {
@@ -149,6 +179,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 14px;
 }
 
 .model-badge:hover {
@@ -237,7 +268,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0; /* جلوگیری از سرریز شدن متون و کادرها */
+  min-width: 0;
 }
 
 .message-bubble {
@@ -262,10 +293,7 @@ body {
   margin-top: 8px;
 }
 
-/* ==========================================================================
-   ChatGPT Code Box Styling (اصلاح و تثبیت کامل کادر کد)
-   ========================================================================== */
-
+/* ---- Code Box Styling ---- */
 .code-block-container {
   background-color: #1e1e1e;
   border-radius: 8px;
@@ -353,7 +381,6 @@ body {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* ---- Small Subtle Copy Button under message ---- */
 .msg-actions {
   display: flex;
   justify-content: flex-start;
@@ -462,6 +489,203 @@ body {
   cursor: not-allowed;
 }
 
+/* ==========================================================================
+   Modal Styling (تثبیت و جداسازی کامل پنجره تنظیمات)
+   ========================================================================== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--modal-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  color: var(--text-main);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  overflow-x: auto;
+}
+
+.modal-tab {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.modal-tab:hover {
+  color: var(--text-main);
+}
+
+.modal-tab.active {
+  background: var(--bg-primary);
+  color: var(--text-main);
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Modal Form Elements */
+.cat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cat-pill {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cat-pill.active {
+  background: var(--accent-color);
+  color: #ffffff;
+  border-color: var(--accent-color);
+}
+
+.select-input, .text-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-main);
+  font-size: 14px;
+  outline: none;
+}
+
+.textarea-input {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-main);
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+}
+
+.param-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.param-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.param-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: var(--bg-secondary);
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
 /* ---- Toast Notification ---- */
 .toast-stack {
   position: fixed;
@@ -470,7 +694,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 1000;
+  z-index: 3000;
 }
 
 .toast {
