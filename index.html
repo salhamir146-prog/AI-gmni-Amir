@@ -1,24 +1,27 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gemini AI Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gemini AI Studio Studio - نسخه پیشرفته</title>
   
-  <!-- فونت‌های استاندارد فارسی و کد نویسی -->
+  <!-- فونت‌های استاندارد فارسی و کدنویسی -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- آیکون‌های FontAwesome -->
+  <!-- کتابخانه آیکون‌ها FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- استایل اصلی -->
+  <!-- فایل استایل CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- سایدبار تاریخچه و منو -->
+  <!-- اعلان‌های سیستمی Toast -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- سایدبار مدیریت گفتگوها -->
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-header">
       <button id="newChatBtn" class="btn-new-chat">
@@ -30,38 +33,67 @@
       </button>
     </div>
 
-    <div id="chatHistoryList" class="chat-history-list">
-      <div class="history-section-title">گفتگوهای اخیر</div>
-      <div id="historyEmpty" class="history-empty">هیچ گفتگویی ذخیره نشده است</div>
+    <!-- جستجو در گفتگوها -->
+    <div class="sidebar-search">
+      <div class="search-input-wrapper">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="searchHistoryInput" placeholder="جستجو در گفتگوها...">
+      </div>
     </div>
 
+    <!-- لیست گفتگوهای ذخیره‌شده -->
+    <div id="chatHistoryList" class="chat-history-list">
+      <div class="history-section-title">امروز</div>
+      <div id="historyContainer"></div>
+      <div id="historyEmpty" class="history-empty" style="display: none;">
+        <i class="fa-regular fa-comments"></i>
+        <p>هیچ گفتگویی یافت نشد</p>
+      </div>
+    </div>
+
+    <!-- فوتر سایدبار -->
     <div class="sidebar-footer">
+      <button id="exportDataBtn" class="sidebar-footer-btn" title="خروجی گرفتن از گفتگوها">
+        <i class="fa-solid fa-file-export"></i>
+        <span>پشتیبان‌گیری</span>
+      </button>
       <button id="openSettingsBtn" class="sidebar-footer-btn">
         <i class="fa-solid fa-gear"></i>
-        <span>تنظیمات و مدل‌ها</span>
+        <span>تنظیمات پیشرفته</span>
       </button>
     </div>
   </aside>
 
-  <!-- بخش اصلی برنامه -->
+  <!-- پوشش پشت سایدبار در موبایل -->
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <!-- بخش اصلی اپلیکیشن -->
   <main id="mainApp" class="main-app">
     
-    <!-- هدر بالای صفحه -->
+    <!-- نوار بالای صفحه (Header) -->
     <header class="top-bar">
       <div class="top-bar-right">
         <button id="openSidebarBtn" class="icon-btn" title="باز کردن سایدبار">
           <i class="fa-solid fa-bars"></i>
         </button>
-        <div id="modelSelectorDropdown" class="model-badge" title="تغییر مدل فعلی">
+
+        <div id="modelSelectorDropdown" class="model-badge">
           <span class="model-icon"><i class="fa-solid fa-bolt"></i></span>
           <span id="currentModelName">Gemini 1.5 Flash</span>
           <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
         </div>
       </div>
 
+      <div class="top-bar-center">
+        <span id="chatTitleHeader" class="chat-title-header">گفتگوی جدید</span>
+      </div>
+
       <div class="top-bar-left">
+        <button id="clearChatBtn" class="icon-btn" title="پاک کردن چت فعلی">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
         <button id="themeToggleBtn" class="icon-btn" title="تغییر حالت شب/روز">
-          <i class="fa-solid fa-moon"></i>
+          <i class="fa-solid fa-sun"></i>
         </button>
         <button id="settingsGearBtn" class="icon-btn" title="تنظیمات">
           <i class="fa-solid fa-sliders"></i>
@@ -69,36 +101,65 @@
       </div>
     </header>
 
-    <!-- منطقه نمایش پیام‌ها و خوش‌آمدگویی -->
+    <!-- منطقه نمایش پیام‌ها -->
     <div id="chatContent" class="chat-content">
       
-      <!-- حالت اولیه (خوش‌آمدگویی) -->
+      <!-- حالت خوش‌آمدگویی (Welcome Screen) -->
       <div id="welcomeContainer" class="welcome-container">
         <div class="welcome-icon">
           <i class="fa-solid fa-sparkles"></i>
         </div>
-        <h1 class="welcome-title">چطور می‌توانم کمکتان کنم؟</h1>
+        <h1 class="welcome-title">سلام! چطور می‌توانم کمکتان کنم؟</h1>
+        <p class="welcome-subtitle">پرسش خود را بنویسید، کد تولید کنید یا فایل آپلود نمایید.</p>
+
+        <div class="quick-prompts">
+          <button class="quick-prompt-btn" data-prompt="یک کد HTML و CSS برام بنویس که یک کارت پروفایل مدرن باشه.">
+            <i class="fa-solid fa-code"></i>
+            <span>طراحی کارت HTML/CSS</span>
+          </button>
+          <button class="quick-prompt-btn" data-prompt="یک تابع پایتون بنویس برای محاسبه فاکتوریل به همراه توضیحات.">
+            <i class="fa-brands fa-python"></i>
+            <span>تابع فاکتوریل در پایتون</span>
+          </button>
+          <button class="quick-prompt-btn" data-prompt="نکات مهم برای بهینه‌سازی سرعت وب‌سایت چیست؟">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>بهینه‌سازی وب‌سایت</span>
+          </button>
+        </div>
       </div>
 
-      <!-- لیست پیام‌های ارسال و دریافت شده -->
+      <!-- لیست اصلی پیام‌ها -->
       <div id="messagesList" class="messages-list" style="display: none;"></div>
 
+      <!-- دکمه شناور رفتن به پایین صفحه -->
+      <button id="scrollToBottomBtn" class="scroll-bottom-btn" style="display: none;" title="انتقال به انتهای پیام‌ها">
+        <i class="fa-solid fa-arrow-down"></i>
+      </button>
     </div>
 
-    <!-- فرم ورودی پیام کاربر -->
+    <!-- بخش ورودی پیام کاربر -->
     <div class="input-wrapper">
+      
+      <!-- پیش‌نمایش فایل‌های آپلود شده -->
+      <div id="filePreviewContainer" class="file-preview-container" style="display: none;"></div>
+
       <div class="input-box">
         <textarea id="promptInput" rows="1" placeholder="هر چه می‌خواهید بپرسید..." autofocus></textarea>
         
         <div class="input-actions">
           <div class="input-actions-left">
-            <button id="fileUploadBtn" class="icon-btn action-btn" title="آپلود فایل یا تصویر">
+            <button id="fileUploadBtn" class="icon-btn action-btn" title="آپلود فایل">
               <i class="fa-solid fa-paperclip"></i>
             </button>
-            <input type="file" id="fileInput" hidden multiple accept="image/*, .pdf, .txt, .js, .html, .css">
+            <input type="file" id="fileInput" hidden multiple accept="image/*, .pdf, .txt, .js, .html, .css, .json, .py">
+
+            <button id="voiceInputBtn" class="icon-btn action-btn" title="ورودی صوتی (میکروفون)">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
           </div>
           
           <div class="input-actions-right">
+            <span id="charCounter" class="char-counter">0 / 4000</span>
             <button id="sendBtn" class="send-btn" title="ارسال پیام" disabled>
               <i class="fa-solid fa-arrow-up"></i>
             </button>
@@ -117,23 +178,42 @@
   <div id="settingsModal" class="modal-overlay" aria-hidden="true">
     <div class="modal-content" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-sliders"></i> تنظیمات سیستم</h3>
+        <h3><i class="fa-solid fa-sliders"></i> تنظیمات هوش مصنوعی</h3>
         <button id="closeModalBtn" class="icon-btn" title="بستن"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="modal-tabs">
-        <button class="modal-tab active" data-tab="model">انتخاب مدل</button>
+        <button class="modal-tab active" data-tab="model">مدل و پارامترها</button>
         <button class="modal-tab" data-tab="system">دستورالعمل سیستم</button>
+        <button class="modal-tab" data-tab="storage">مدیریت حافظه</button>
       </div>
 
       <div class="modal-body">
         <!-- تب تنظیمات مدل -->
         <div class="tab-panel active" data-panel="model">
           <div class="form-group">
-            <label class="input-label" for="modelSelect">مدل هوش مصنوعی</label>
+            <label class="input-label" for="modelSelect">انتخاب مدل اصلی</label>
             <select id="modelSelect" class="select-input">
               <option value="gemini-1.5-flash">Gemini 1.5 Flash (سریع و بهینه)</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro (پیشرفته و دقیق)</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (استدلال پیچیده و دقیق)</option>
+              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (ازمایشی و پرسرعت)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label">
+              درجه خلاقیت (Temperature): <span id="tempValueDisplay">0.7</span>
+            </label>
+            <input type="range" id="temperatureInput" min="0" max="1" step="0.05" value="0.7" class="range-input">
+          </div>
+
+          <div class="form-group">
+            <label class="input-label">حداکثر طول پاسخ (Max Tokens)</label>
+            <select id="maxTokensSelect" class="select-input">
+              <option value="1024">1024 توکن</option>
+              <option value="2048">2048 توکن</option>
+              <option value="4096" selected>4096 توکن</option>
+              <option value="8192">8192 توکن</option>
             </select>
           </div>
         </div>
@@ -142,18 +222,29 @@
         <div class="tab-panel" data-panel="system">
           <div class="form-group">
             <label class="input-label" for="systemInstruction">دستورالعمل اختصاصی (System Prompt)</label>
-            <textarea id="systemInstruction" class="textarea-input" placeholder="مثلاً: همواره پاسخ‌ها را کاملاً خلاصه و به زبان فارسی رسمی ارائه بده..."></textarea>
+            <textarea id="systemInstruction" class="textarea-input" placeholder="مثلاً: پاسخ‌ها را همیشه به عنوان یک برنامه‌نویس ارشد فرانت‌اند با لحنی دوستانه و دقیق ارسال کن..."></textarea>
           </div>
+        </div>
+
+        <!-- تب مدیریت حافظه -->
+        <div class="tab-panel" data-panel="storage">
+          <div class="storage-info-box">
+            <p>تعداد گفتگوهای ذخیره شده: <strong id="totalChatsCount">0</strong></p>
+            <p>حجم تقریبی اشغال‌شده: <strong id="storageSizeCount">0 KB</strong></p>
+          </div>
+          <button id="clearAllHistoryBtn" class="btn-danger">
+            <i class="fa-solid fa-trash-can"></i> پاکسازی کامل تمام گفتگوها
+          </button>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button id="saveSettingsBtn" class="btn-primary">ذخیره تغییرات</button>
+        <button id="saveSettingsBtn" class="btn-primary">ذخیره و اعمال</button>
       </div>
     </div>
   </div>
 
-  <!-- اسکریپت اصلی -->
+  <!-- اسکریپت اصلی برنامه -->
   <script src="app.js"></script>
 </body>
 </html>
