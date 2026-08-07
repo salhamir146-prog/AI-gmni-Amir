@@ -1,8 +1,8 @@
 // ==========================================================================
-// ChatGPT Classic — Developer Edition — app.js
+// ChatGPT Classic — Gemini Edition — app.js
 // ==========================================================================
 
-// تابع جهانی برای کپی کردن کدهای داخل باکس کد (مشابه چت‌جی‌پی‌تی)
+// توابع جهانی کپی و دانلود کدهای داخل کادر (مشابه ChatGPT)
 window.copyCodeSnippet = function(btn) {
   const container = btn.closest('.code-block-container');
   if (!container) return;
@@ -14,10 +14,31 @@ window.copyCodeSnippet = function(btn) {
   });
 };
 
-// ---- Model catalog (single source of truth) --------------------------------
+window.downloadCodeSnippet = function(btn) {
+  const container = btn.closest('.code-block-container');
+  if (!container) return;
+  const code = container.querySelector('code').innerText;
+  const lang = container.querySelector('.code-lang').innerText.toLowerCase();
+  
+  const extensions = { 
+    html: 'html', css: 'css', javascript: 'js', js: 'js', 
+    python: 'py', cpp: 'cpp', c: 'c', json: 'json', 
+    php: 'php', sql: 'sql', java: 'java', typescript: 'ts', ts: 'ts'
+  };
+  const ext = extensions[lang] || 'txt';
+  
+  const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `code.${ext}`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+// ---- Model catalog -------------------------------------------------------
 const MODEL_CATALOG = [
   // ---- Text (Gemini) ----
-  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'جدیدترین مدل فلش — سریع و مناسب کدنویسی' },
+  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'جدیدترین مدل فلش — سریع' },
   { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل پایدار و دقیق' },
   { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', group: '📝 متنی (Gemini)', category: 'text', desc: 'نسخه سبک، مصرف کم' },
   { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', group: '📝 متنی (Gemini)', category: 'text', desc: 'سبک‌ترین نسخه ۳.۱' },
@@ -25,13 +46,13 @@ const MODEL_CATALOG = [
   { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B MoE IT', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل متن‌باز MoE' },
 
   // ---- Text (Groq) ----
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'قدرتمندترین مدل Groq برای کدنویسی' },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'قدرتمندترین مدل Groq' },
   { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', group: '📝 متنی (Groq)', category: 'text', desc: 'سریع و مقرون‌به‌صرفه' },
-  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'مدل استدلال عمیق و حل مسائل الگوریتمی' },
+  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'مدل استدلال عمیق' },
 ];
 
 const CATEGORY_META = {
-  text:        { label: 'متنی',   icon: 'fa-code' },
+  text:        { label: 'متنی',   icon: 'fa-comment-dots' },
   tts:         { label: 'صوتی',   icon: 'fa-microphone-lines' },
   music:       { label: 'موسیقی', icon: 'fa-music' },
   video:       { label: 'ویدیو',  icon: 'fa-clapperboard' },
@@ -39,10 +60,10 @@ const CATEGORY_META = {
 };
 
 const SUGGESTIONS = [
-  'یک اسکریپت پایتون برای دانلود ویدیو بنویس',
-  'یک تابع جاوا اسکریپت برای اعتبار سنجی فرم بنویس',
-  'طراحی صفحه لاگین مدرن با HTML و CSS',
-  'حل الگوریتم مرتب‌سازی سریع در C++',
+  'یک ایده برای پروژه برنامه‌نویسی بده',
+  'خلاصه‌ای از یک کتاب معروف بنویس',
+  'یک مقاله کوتاه درباره هوش مصنوعی بفرست',
+  'طراحی صفحه لاگین با HTML و CSS',
 ];
 
 function findModel(id) { return MODEL_CATALOG.find(m => m.id === id) || MODEL_CATALOG[0]; }
@@ -85,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const newChatBtn = $('newChatBtn');
   const saveChatBtn = $('saveChatBtn');
 
-  // File upload elements
   const fileUploadBtn = $('fileUploadBtn');
   const fileInput = $('fileInput');
   const fileBadge = $('fileBadge');
@@ -106,22 +126,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingModelId = state.modelId;
   let lastSavedChat = null;
 
-  // ---- Client id ----
   let clientId = localStorage.getItem('clientId');
   if (!clientId) {
     clientId = (crypto.randomUUID ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(16).slice(2));
     localStorage.setItem('clientId', clientId);
   }
 
-  // defaults for generation params
-  state.params.temperature ??= 0.2; // دمای پایین‌تر برای کدنویسی دقیق‌تر
+  state.params.temperature ??= 0.7;
   state.params.maxOutputTokens ??= 4096;
   state.params.topP ??= 0.95;
-  state.params.voiceName ??= 'Kore';
 
   applyTheme(state.theme);
 
-  // ---- Long-term memory ----
+  // ---- Memory ----
   if (memoryEnabledToggle) {
     memoryEnabledToggle.checked = state.memoryEnabled;
     memoryEnabledToggle.addEventListener('change', () => {
@@ -132,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (clearMemoryBtn) {
     clearMemoryBtn.addEventListener('click', async () => {
-      if (!confirm('حافظه بلندمدت پاک شود؟')) return;
+      if (!confirm('حافظه بلندمدت برای همیشه پاک شود؟')) return;
       clearMemoryBtn.disabled = true;
       try {
         const res = await fetch('/api/memory?uid=' + encodeURIComponent(clientId), { method: 'DELETE' });
@@ -162,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMemory();
 
   function buildSystemInstruction() {
-    let sys = state.systemPrompt || 'تو یک دستیار هوشمند و حرفه‌ای برنامه‌نویسی هستی (مشابه ChatGPT). کدهای درخواستی کاربر را بسیار تمیز، بهینه، همراه با کامنت‌های آموزشی و حتماً در بلوک‌های کد استاندارد (با مشخص کردن زبان) تحویل بده.';
+    let sys = state.systemPrompt || '';
     if (state.memoryEnabled && state.longTermMemory) {
       sys += (sys ? '\n\n' : '') + '--- حافظه بلندمدت درباره کاربر ---\n' + state.longTermMemory;
     }
@@ -175,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const extractPrompt =
         'حافظه فعلی کاربر:\n' + (state.longTermMemory || '(خالی)') +
         '\n\nتبادل جدید:\nکاربر: ' + userText + '\nپاسخ دستیار: ' + assistantText +
-        '\n\nوظیفه: فقط ترجیحات برنامه‌نویسی، زبان‌های مورد استفاده و پروژه‌های مهم کاربر را استخراج و ادغام کن. فهرست نهایی را به صورت - خروجی بده.';
+        '\n\nوظیفه: نکات مهم و جدید کاربر را استخراج و ادغام کن. فهرست نهایی را به صورت - خروجی بده.';
 
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -199,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ---- Populate model <select> ----
+  // ---- Model Select ----
   function renderModelOptions(filterCategory) {
     if (!modelSelect) return;
     modelSelect.innerHTML = '';
@@ -227,12 +244,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateModelDescBox() {
     if (!modelDescBox || !modelSelect) return;
     const m = findModel(modelSelect.value);
-    modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-code'}"></i> ${escapeHtml(m.desc)}`;
+    modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-comment-dots'}"></i> ${escapeHtml(m.desc)}`;
   }
 
-  // ---- Category pills ----
   const categories = ['all', 'text', 'tts', 'music', 'video', 'unsupported'];
-  const categoryLabels = { all: 'همه', text: '📝 متنی/کد', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
+  const categoryLabels = { all: 'همه', text: '📝 متنی', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
   let activeCategory = 'all';
 
   if (categoryPills) {
@@ -260,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---- Dynamic params ----
   function renderDynamicParams() {
     if (!dynamicParams) return;
     const m = findModel(pendingModelId);
@@ -284,13 +299,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (m.category === 'text') {
-      sliderRow('temperature', 'دما (Temperature)', 0, 2, 0.05, 'مقدار پایین‌تر (۰.۲) برای کدنویسی دقیق‌تر مناسب است', v => v.toFixed(2));
-      sliderRow('topP', 'Top-P', 0, 1, 0.01, 'کنترل تنوع کلمات', v => v.toFixed(2));
-      sliderRow('maxOutputTokens', 'حداکثر توکن خروجی', 256, 8192, 256, 'طول پاسخ کدها');
+      sliderRow('temperature', 'دما (Temperature)', 0, 2, 0.05, 'خلاقیت خروجی', v => v.toFixed(2));
+      sliderRow('topP', 'Top-P', 0, 1, 0.01, 'تنوع کلمات', v => v.toFixed(2));
+      sliderRow('maxOutputTokens', 'حداکثر توکن', 256, 8192, 256, 'طول پاسخ');
     }
   }
 
-  // ---- Init ----
   renderModelOptions('all');
   renderDynamicParams();
   if (systemInstructionInput) systemInstructionInput.value = state.systemPrompt;
@@ -303,7 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---- Theme ----
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
     if (themeToggleBtn) themeToggleBtn.innerHTML = t === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
@@ -316,16 +329,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---- Header ----
   function updateHeaderForModel(modelId) {
     const m = findModel(modelId);
     if (currentModelName) currentModelName.textContent = m.name;
-    if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-code'}"></i>`;
+    if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-comment-dots'}"></i>`;
     if (!modelContextBar) return;
     modelContextBar.style.display = 'none';
   }
 
-  // ---- Textarea autosize ----
   if (promptInput) {
     promptInput.addEventListener('input', () => {
       promptInput.style.height = 'auto';
@@ -334,11 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---- Sidebar ----
   if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('closed'));
   if (openSidebarBtn) openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('closed'));
 
-  // ---- File upload ----
+  // ---- File Upload ----
   function clearUploadedFile() {
     state.uploadedFile = null;
     if (fileBadge) fileBadge.style.display = 'none';
@@ -347,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fileNameDisplay.innerHTML = '';
     }
     if (fileUploadBtn) fileUploadBtn.classList.remove('has-file');
-    if (promptInput) promptInput.placeholder = 'کد یا سوال خود را مطرح کنید...';
+    if (promptInput) promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
     if (sendBtn) sendBtn.disabled = promptInput.value.trim() === '';
   }
 
@@ -379,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
       }
-      if (promptInput) promptInput.placeholder = `📎 ${file.name} — دستور خود را تایپ کنید...`;
+      if (promptInput) promptInput.placeholder = `📎 ${file.name} — پیام خود را بنویسید...`;
     } else {
       clearUploadedFile();
     }
@@ -408,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
           size: file.size,
         };
         updateFileBadge();
-        showToast(`فایل "${file.name}" آماده شد ✅`, 'success');
+        showToast(`فایل "${file.name}" آپلود شد ✅`, 'success');
         if (sendBtn) sendBtn.disabled = false;
       };
       reader.readAsDataURL(file);
@@ -458,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (testConnBtn) testConnBtn.addEventListener('click', testConnection);
 
-  // ---- Chat Management ----
+  // ---- Save/Load Chat ----
   function saveCurrentChat() {
     if (conversationHistory.length === 0) return;
     const title = getChatTitle();
@@ -489,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const text = firstUser.parts[0].text;
       return text.length > 35 ? text.substring(0, 35) + '...' : text;
     }
-    return 'پروژه جدید کدنویسی';
+    return 'گفت‌وگوی جدید';
   }
 
   function loadChatsList() {
@@ -514,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (chat.id === state.currentChatId) item.classList.add('active');
 
       item.innerHTML = `
-        <i class="fa-regular fa-code"></i>
+        <i class="fa-regular fa-comment"></i>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(chat.title)}</span>
         <button class="icon-btn delete-chat-btn" data-id="${chat.id}" style="width:24px;height:24px;font-size:11px;color:#dc2626;" title="حذف چت">
           <i class="fa-regular fa-trash-can"></i>
@@ -554,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.className = `message-row ${msg.role === 'user' ? 'user' : 'assistant'}`;
       const isUser = msg.role === 'user';
       row.innerHTML = `
-        <div class="avatar-mini">${isUser ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-code"></i>'}</div>
+        <div class="avatar-mini">${isUser ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-sparkles"></i>'}</div>
         <div class="message-col">
           <div class="message-bubble">${msg.parts && msg.parts[0] && msg.parts[0].text ? renderMarkdown(msg.parts[0].text) : ''}</div>
           <div class="msg-actions"></div>
@@ -618,7 +628,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadChatsList();
   }
 
-  // ---- New Chat ----
   if (newChatBtn) {
     newChatBtn.addEventListener('click', () => {
       conversationHistory = [];
@@ -635,7 +644,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (saveChatBtn) saveChatBtn.addEventListener('click', saveCurrentChat);
 
-  // ---- Keydown listener ----
   if (promptInput) {
     promptInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -646,9 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (sendBtn) sendBtn.addEventListener('click', handleSend);
 
-  // ==========================================================================
-  // SEND LOGIC
-  // ==========================================================================
+  // ---- Handle Send ----
   async function handleSend() {
     const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
@@ -659,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (welcomeContainer) welcomeContainer.style.display = 'none';
     if (messagesList) messagesList.style.display = 'flex';
 
-    let displayText = text || (state.uploadedFile ? `[فایل کد: ${state.uploadedFile.name}]` : '');
+    let displayText = text || (state.uploadedFile ? `[فایل: ${state.uploadedFile.name}]` : '');
     appendUserMessage(displayText, state.uploadedFile);
 
     if (promptInput) {
@@ -686,9 +692,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sendBtn) sendBtn.disabled = false;
   }
 
-  // ==========================================================================
-  // GENERATION HANDLER
-  // ==========================================================================
   async function handleGeminiGenerate(model, bubble) {
     const modelId = model?.id || state.modelId || 'gemini-3.6-flash';
 
@@ -697,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
       contents: conversationHistory,
       systemInstruction: buildSystemInstruction(),
       generationConfig: {
-        temperature: state.params?.temperature ?? 0.2,
+        temperature: state.params?.temperature ?? 0.7,
         topP: state.params?.topP ?? 0.95,
         maxOutputTokens: state.params?.maxOutputTokens ?? 4096,
       },
@@ -725,15 +728,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ==========================================================================
-  // CHATGPT-STYLE MARKDOWN & CODE RENDERING
-  // ==========================================================================
+  // ---- Render Markdown with ChatGPT Code Blocks ----
   function renderMarkdown(text) {
     if (!text) return '';
 
     const codeBlocks = [];
 
-    // ۱. استخراج بلوک‌های کد (```lang ... ```) قبل از تبدیل کاراکترهای HTML
+    // ۱. استخراج کدهای سه بک‌تیک (```lang ... ```)
     let html = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
       const index = codeBlocks.length;
       const language = lang.trim() || 'code';
@@ -743,9 +744,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="code-block-container">
           <div class="code-block-header">
             <span class="code-lang">${escapeHtml(language)}</span>
-            <button class="copy-code-btn" onclick="copyCodeSnippet(this)">
-              <i class="fa-regular fa-copy"></i> کپی کد
-            </button>
+            <div class="code-actions">
+              <button class="code-btn download-btn" onclick="downloadCodeSnippet(this)" title="دانلود فایل">
+                <i class="fa-solid fa-download"></i> دانلود
+              </button>
+              <button class="code-btn copy-btn" onclick="copyCodeSnippet(this)" title="کپی کد">
+                <i class="fa-regular fa-copy"></i> کپی کد
+              </button>
+            </div>
           </div>
           <pre><code class="language-${escapeHtml(language)}">${escapeHtml(cleanCode)}</code></pre>
         </div>`;
@@ -754,20 +760,20 @@ document.addEventListener('DOMContentLoaded', () => {
       return `___CODE_BLOCK_${index}___`;
     });
 
-    // ۲. امن‌سازی متن‌های معمولی
+    // ۲. امن‌سازی متن عادی
     html = escapeHtml(html);
 
-    // ۳. تبدیل کدهای درون‌خطی `code`
+    // ۳. کدهای درون‌خطی `code`
     html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
 
-    // ۴. استایل‌های بولد و ایتالیک
+    // ۴. بولد و ایتالیک
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-    // ۵. تبدیل خطوط جدید به <br> فقط برای متن معمولی
+    // ۵. تبدیل خطوط جدید متن به <br>
     html = html.replace(/\n/g, '<br>');
 
-    // ۶. بازگرداندن بلوک‌های کد سالم به داخل متن
+    // ۶. جاگذاری مجدد کادرهای کد
     codeBlocks.forEach((block, index) => {
       html = html.replace(`___CODE_BLOCK_${index}___`, block);
     });
@@ -775,11 +781,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return html;
   }
 
-  // دکمه کپی ظریف و کوچک زیر کل پاسخ
+  // دکمه کپی کوچک و جمع‌وجور زیر پیام
   function attachMessageEnhancements(bubble) {
     const actions = bubble.parentElement.querySelector('.msg-actions') || bubble.parentElement;
     
-    // پاک کردن دکمه‌های قبلی در صورت وجود
     const existingBtn = actions.querySelector('.copy-msg-btn');
     if (existingBtn) existingBtn.remove();
 
@@ -796,9 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
     actions.appendChild(copyBtn);
   }
 
-  // ==========================================================================
-  // UI HELPERS
-  // ==========================================================================
   function appendUserMessage(text, file) {
     const row = document.createElement('div');
     row.className = 'message-row user';
@@ -821,7 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const row = document.createElement('div');
     row.className = 'message-row assistant';
     row.innerHTML = `
-      <div class="avatar-mini"><i class="fa-solid fa-code"></i></div>
+      <div class="avatar-mini"><i class="fa-solid fa-sparkles"></i></div>
       <div class="message-col">
         <div class="message-bubble typing-dots">
           <span></span><span></span><span></span>
