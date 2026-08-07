@@ -14,3 +14,9 @@ command = ""
 
 [build.upload]
 format = "modules"
+
+[env.production]
+vars = { }
+
+[env.preview]
+vars = { }
