@@ -1,129 +1,41 @@
 /**
  * ============================================================================
- * Gemini AI Interface - Application Engine (app.js)
+ * Gemini AI Studio - Complete Engine (app.js)
+ * مدیریت کامل گفتگوها، تنظیمات، رندر مارک‌داون، هایلایت کد و ذخیره‌سازی
  * ============================================================================
- * سیستم کامل و بدون اختصار مدیریت چت هوش مصنوعی، رندرینگ مارک‌داون،
- * هایلایت پیشرفته سنتکس، مدیریت حافظه محلی (localStorage)، تم و تنظیمات.
  */
 
-// ==========================================
-// 1. مدیریت وضعیت برنامه (State Management)
-// ==========================================
-const AppState = {
-  currentChatId: null,
-  chats: [],
-  settings: {
-    theme: 'dark',
-    model: 'gemini-1.5-flash',
-    systemInstruction: '',
-    apiKey: '',
-    temperature: 0.7,
-    autoScroll: true
-  },
-  attachments: [],
-  isGenerating: false
-};
+document.addEventListener('DOMContentLoaded', () => {
 
-// ==========================================
-// 2. سیستم سیستم اطلاع‌رسانی (Toast Notification)
-// ==========================================
-class ToastNotification {
-  static show(message, type = 'info', duration = 3000) {
-    let container = document.getElementById('toastContainer');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'toastContainer';
-      container.className = 'toast-container';
-      document.body.appendChild(container);
-    }
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    const icon = type === 'success' ? 'fa-circle-check' : 
-                 type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info';
-
-    toast.innerHTML = `
-      <i class="fa-solid ${icon}"></i>
-      <span>${escapeHtml(message)}</span>
-    `;
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.classList.add('show');
-    }, 10);
-
-    setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
-  }
-}
-
-// ==========================================
-// 3. سرویس ذخیره‌سازی حافظه محلی (Storage Service)
-// ==========================================
-class StorageService {
-  static STORAGE_KEYS = {
-    CHATS: 'gemini_app_chats',
-    CURRENT_CHAT: 'gemini_app_current_id',
-    SETTINGS: 'gemini_app_settings'
+  // ==========================================================================
+  // 1. وضعیت اصلی برنامه (State Management)
+  // ==========================================================================
+  const state = {
+    chats: [],
+    activeChatId: null,
+    settings: {
+      model: 'gemini-1.5-flash',
+      temperature: 0.7,
+      maxTokens: 4096,
+      systemInstruction: ''
+    },
+    attachedFiles: [],
+    isGenerating: false,
+    theme: 'dark'
   };
 
-  static saveChats(chats) {
-    try {
-      localStorage.setItem(this.STORAGE_KEYS.CHATS, JSON.stringify(chats));
-    } catch (e) {
-      console.error('خطا در ذخیره‌سازی چت‌ها در LocalStorage:', e);
-      ToastNotification.show('خطا در ذخیره‌سازی گفتگوها', 'error');
-    }
-  }
-
-  static loadChats() {
-    try {
-      const data = localStorage.getItem(this.STORAGE_KEYS.CHATS);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error('خطا در بارگیری چت‌ها از LocalStorage:', e);
-      return [];
-    }
-  }
-
-  static saveSettings(settings) {
-    try {
-      localStorage.setItem(this.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-    } catch (e) {
-      console.error('خطا در ذخیره تنظیمات:', e);
-    }
-  }
-
-  static loadSettings() {
-    try {
-      const data = localStorage.getItem(this.STORAGE_KEYS.SETTINGS);
-      return data ? { ...AppState.settings, ...JSON.parse(data) } : AppState.settings;
-    } catch (e) {
-      return AppState.settings;
-    }
-  }
-}
-
-// ==========================================
-// 4. راه‌اندازی و تعاملات DOM
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  // بارگیری تنظیمات و چت‌های ذخیره شده
-  AppState.settings = StorageService.loadSettings();
-  AppState.chats = StorageService.loadChats();
-
-  // عناصر اصلی DOM
+  // ==========================================================================
+  // 2. ارجاعات DOM
+  // ==========================================================================
   const DOM = {
     sidebar: document.getElementById('sidebar'),
+    sidebarOverlay: document.getElementById('sidebarOverlay'),
     openSidebarBtn: document.getElementById('openSidebarBtn'),
     closeSidebarBtn: document.getElementById('closeSidebarBtn'),
     newChatBtn: document.getElementById('newChatBtn'),
-    chatHistoryList: document.getElementById('chatHistoryList'),
+    historyContainer: document.getElementById('historyContainer'),
     historyEmpty: document.getElementById('historyEmpty'),
+    searchHistoryInput: document.getElementById('searchHistoryInput'),
     
     modal: document.getElementById('settingsModal'),
     openSettingsBtn: document.getElementById('openSettingsBtn'),
@@ -132,180 +44,140 @@ document.addEventListener('DOMContentLoaded', () => {
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
     
     themeToggleBtn: document.getElementById('themeToggleBtn'),
+    clearChatBtn: document.getElementById('clearChatBtn'),
+    exportDataBtn: document.getElementById('exportDataBtn'),
+    clearAllHistoryBtn: document.getElementById('clearAllHistoryBtn'),
+    
     promptInput: document.getElementById('promptInput'),
     sendBtn: document.getElementById('sendBtn'),
     fileUploadBtn: document.getElementById('fileUploadBtn'),
     fileInput: document.getElementById('fileInput'),
+    filePreviewContainer: document.getElementById('filePreviewContainer'),
+    voiceInputBtn: document.getElementById('voiceInputBtn'),
+    charCounter: document.getElementById('charCounter'),
     
     chatContent: document.getElementById('chatContent'),
     welcomeContainer: document.getElementById('welcomeContainer'),
     messagesList: document.getElementById('messagesList'),
+    scrollToBottomBtn: document.getElementById('scrollToBottomBtn'),
     
+    currentModelName: document.getElementById('currentModelName'),
+    chatTitleHeader: document.getElementById('chatTitleHeader'),
     modelSelect: document.getElementById('modelSelect'),
+    temperatureInput: document.getElementById('temperatureInput'),
+    tempValueDisplay: document.getElementById('tempValueDisplay'),
+    maxTokensSelect: document.getElementById('maxTokensSelect'),
     systemInstruction: document.getElementById('systemInstruction'),
-    currentModelName: document.getElementById('currentModelName')
+    totalChatsCount: document.getElementById('totalChatsCount'),
+    storageSizeCount: document.getElementById('storageSizeCount'),
+    toastContainer: document.getElementById('toastContainer')
   };
 
-  // ------------------------------------------
-  // مدیریت تم (Dark/Light Mode)
-  // ------------------------------------------
-  function applyTheme(theme) {
-    document.body.setAttribute('data-theme', theme);
-    AppState.settings.theme = theme;
-    StorageService.saveSettings(AppState.settings);
+  // ==========================================================================
+  // 3. توابع اعلانات Toast
+  // ==========================================================================
+  function showToast(message, type = 'info', duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let iconClass = 'fa-circle-info';
+    if (type === 'success') iconClass = 'fa-circle-check';
+    if (type === 'error') iconClass = 'fa-triangle-exclamation';
 
-    if (DOM.themeToggleBtn) {
-      const icon = DOM.themeToggleBtn.querySelector('i');
-      if (icon) {
-        icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-      }
+    toast.innerHTML = `<i class="fa-solid ${iconClass}"></i><span>${message}</span>`;
+    DOM.toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-10px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  // ==========================================================================
+  // 4. مدیریت حافظه محلی LocalStorage
+  // ==========================================================================
+  function loadFromStorage() {
+    try {
+      const savedChats = localStorage.getItem('gemini_chats');
+      if (savedChats) state.chats = JSON.parse(savedChats);
+
+      const savedSettings = localStorage.getItem('gemini_settings');
+      if (savedSettings) state.settings = JSON.parse(savedSettings);
+
+      const savedTheme = localStorage.getItem('gemini_theme') || 'dark';
+      state.theme = savedTheme;
+      document.body.setAttribute('data-theme', savedTheme);
+      updateThemeIcon(savedTheme);
+
+      applySettingsToUI();
+    } catch (e) {
+      console.error('Error loading local storage', e);
+      showToast('خطا در بارگذاری حافظه محلی', 'error');
+    }
+  }
+
+  function saveToStorage() {
+    try {
+      localStorage.setItem('gemini_chats', JSON.stringify(state.chats));
+      localStorage.setItem('gemini_settings', JSON.stringify(state.settings));
+      localStorage.setItem('gemini_theme', state.theme);
+      updateStorageMetrics();
+    } catch (e) {
+      console.error('Storage quota exceeded', e);
+      showToast('حافظه مرورگر پر شده است', 'error');
+    }
+  }
+
+  function updateStorageMetrics() {
+    const dataStr = JSON.stringify(state.chats) + JSON.stringify(state.settings);
+    const bytes = new Blob([dataStr]).size;
+    const kb = (bytes / 1024).toFixed(1);
+    
+    if (DOM.totalChatsCount) DOM.totalChatsCount.textContent = state.chats.length;
+    if (DOM.storageSizeCount) DOM.storageSizeCount.textContent = `${kb} KB`;
+  }
+
+  // ==========================================================================
+  // 5. مدیریت تم (تاریک / روشن)
+  // ==========================================================================
+  function updateThemeIcon(theme) {
+    if (!DOM.themeToggleBtn) return;
+    const icon = DOM.themeToggleBtn.querySelector('i');
+    if (icon) {
+      icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
     }
   }
 
   DOM.themeToggleBtn?.addEventListener('click', () => {
-    const newTheme = AppState.settings.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(newTheme);
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', state.theme);
+    updateThemeIcon(state.theme);
+    saveToStorage();
+    showToast(`حالت ${state.theme === 'dark' ? 'شب' : 'روز'} فعال شد`, 'info');
   });
 
-  applyTheme(AppState.settings.theme);
-
-  // ------------------------------------------
-  // مدیریت سایدبار و منوها
-  // ------------------------------------------
-  DOM.openSidebarBtn?.addEventListener('click', () => {
-    DOM.sidebar.classList.add('active');
-  });
-
-  DOM.closeSidebarBtn?.addEventListener('click', () => {
-    DOM.sidebar.classList.remove('active');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 768 && 
-        DOM.sidebar?.classList.contains('active') && 
-        !DOM.sidebar.contains(e.target) && 
-        !DOM.openSidebarBtn.contains(e.target)) {
-      DOM.sidebar.classList.remove('active');
-    }
-  });
-
-  DOM.newChatBtn?.addEventListener('click', () => {
-    createNewChat();
-  });
-
-  // ------------------------------------------
-  // مدیریت مدال تنظیمات
-  // ------------------------------------------
-  function toggleModal(show) {
-    if (!DOM.modal) return;
-    if (show) {
-      DOM.modal.classList.add('active');
-      DOM.modal.setAttribute('aria-hidden', 'false');
-      
-      // مقداردهی گزینه‌ها
-      if (DOM.modelSelect) DOM.modelSelect.value = AppState.settings.model;
-      if (DOM.systemInstruction) DOM.systemInstruction.value = AppState.settings.systemInstruction;
+  // ==========================================================================
+  // 6. مدیریت سایدبار و منو
+  // ==========================================================================
+  function toggleSidebar(open) {
+    if (open) {
+      DOM.sidebar.classList.add('active');
+      DOM.sidebarOverlay.classList.add('active');
     } else {
-      DOM.modal.classList.remove('active');
-      DOM.modal.setAttribute('aria-hidden', 'true');
+      DOM.sidebar.classList.remove('active');
+      DOM.sidebarOverlay.classList.remove('active');
     }
   }
 
-  DOM.openSettingsBtn?.addEventListener('click', () => toggleModal(true));
-  DOM.settingsGearBtn?.addEventListener('click', () => toggleModal(true));
-  DOM.closeModalBtn?.addEventListener('click', () => toggleModal(false));
+  DOM.openSidebarBtn?.addEventListener('click', () => toggleSidebar(true));
+  DOM.closeSidebarBtn?.addEventListener('click', () => toggleSidebar(false));
+  DOM.sidebarOverlay?.addEventListener('click', () => toggleSidebar(false));
 
-  DOM.modal?.addEventListener('click', (e) => {
-    if (e.target === DOM.modal) toggleModal(false);
-  });
-
-  // مدیریت تب‌های داخل مدال
-  document.querySelectorAll('.modal-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-
-      tab.classList.add('active');
-      const panel = document.querySelector(`[data-panel="${tab.dataset.tab}"]`);
-      if (panel) panel.classList.add('active');
-    });
-  });
-
-  DOM.saveSettingsBtn?.addEventListener('click', () => {
-    if (DOM.modelSelect) AppState.settings.model = DOM.modelSelect.value;
-    if (DOM.systemInstruction) AppState.settings.systemInstruction = DOM.systemInstruction.value;
-
-    StorageService.saveSettings(AppState.settings);
-
-    if (DOM.currentModelName && DOM.modelSelect) {
-      const selectedText = DOM.modelSelect.options[DOM.modelSelect.selectedIndex].text;
-      DOM.currentModelName.textContent = selectedText.split('(')[0].trim();
-    }
-
-    ToastNotification.show('تنظیمات با موفقیت ذخیره شد', 'success');
-    toggleModal(false);
-  });
-
-  // ------------------------------------------
-  // تغییر خودکار ارتفاع اینپوت و ارسال
-  // ------------------------------------------
-  DOM.promptInput?.addEventListener('input', () => {
-    DOM.promptInput.style.height = 'auto';
-    DOM.promptInput.style.height = Math.min(DOM.promptInput.scrollHeight, 200) + 'px';
-
-    const hasText = DOM.promptInput.value.trim().length > 0;
-    if (DOM.sendBtn) {
-      DOM.sendBtn.disabled = !hasText || AppState.isGenerating;
-      DOM.sendBtn.style.opacity = (!hasText || AppState.isGenerating) ? '0.5' : '1';
-      DOM.sendBtn.style.cursor = (!hasText || AppState.isGenerating) ? 'not-allowed' : 'pointer';
-    }
-  });
-
-  DOM.promptInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!DOM.sendBtn.disabled && !AppState.isGenerating) {
-        handleSendMessage();
-      }
-    }
-  });
-
-  DOM.sendBtn?.addEventListener('click', () => {
-    if (!DOM.sendBtn.disabled && !AppState.isGenerating) {
-      handleSendMessage();
-    }
-  });
-
-  // ------------------------------------------
-  // مدیریت آپلود فایل
-  // ------------------------------------------
-  DOM.fileUploadBtn?.addEventListener('click', () => {
-    DOM.fileInput?.click();
-  });
-
-  DOM.fileInput?.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        AppState.attachments.push({
-          name: file.name,
-          type: file.type,
-          data: event.target.result
-        });
-        ToastNotification.show(`فایل ${file.name} بارگذاری شد`, 'info');
-      };
-      reader.readAsDataURL(file);
-    });
-
-    DOM.fileInput.value = '';
-  });
-
-  // ------------------------------------------
-  // توابع مدیریت گفتگوها
-  // ------------------------------------------
+  // ==========================================================================
+  // 7. سیستم مدیریت گفتگوها (Chats Management)
+  // ==========================================================================
   function createNewChat() {
     const newChat = {
       id: 'chat_' + Date.now(),
@@ -314,173 +186,253 @@ document.addEventListener('DOMContentLoaded', () => {
       messages: []
     };
 
-    AppState.chats.unshift(newChat);
-    AppState.currentChatId = newChat.id;
-    StorageService.saveChats(AppState.chats);
-
-    renderHistoryList();
-    loadChat(newChat.id);
-
-    if (window.innerWidth <= 768) {
-      DOM.sidebar.classList.remove('active');
-    }
+    state.chats.unshift(newChat);
+    state.activeChatId = newChat.id;
+    saveToStorage();
+    renderSidebarHistory();
+    loadActiveChat();
+    showToast('گفتگوی جدید ایجاد شد', 'success');
   }
 
-  function loadChat(chatId) {
-    AppState.currentChatId = chatId;
-    const chat = AppState.chats.find(c => c.id === chatId);
-
-    if (!chat) return;
-
-    if (DOM.welcomeContainer) {
-      DOM.welcomeContainer.style.display = chat.messages.length === 0 ? 'flex' : 'none';
-    }
-
-    if (DOM.messagesList) {
-      DOM.messagesList.style.display = chat.messages.length === 0 ? 'none' : 'flex';
+  function loadActiveChat() {
+    const currentChat = state.chats.find(c => c.id === state.activeChatId);
+    
+    if (!currentChat || currentChat.messages.length === 0) {
+      DOM.welcomeContainer.style.display = 'flex';
+      DOM.messagesList.style.display = 'none';
       DOM.messagesList.innerHTML = '';
-
-      chat.messages.forEach(msg => {
-        renderMessageBubble(msg.text, msg.sender, msg.timestamp);
-      });
+      DOM.chatTitleHeader.textContent = 'گفتگوی جدید';
+      return;
     }
 
-    renderHistoryList();
+    DOM.welcomeContainer.style.display = 'none';
+    DOM.messagesList.style.display = 'flex';
+    DOM.messagesList.innerHTML = '';
+    DOM.chatTitleHeader.textContent = currentChat.title;
+
+    currentChat.messages.forEach(msg => {
+      renderMessageItem(msg.text, msg.sender, false);
+    });
+
     scrollToBottom();
   }
 
   function deleteChat(chatId, event) {
-    event.stopPropagation();
-    AppState.chats = AppState.chats.filter(c => c.id !== chatId);
-
-    if (AppState.currentChatId === chatId) {
-      AppState.currentChatId = AppState.chats.length > 0 ? AppState.chats[0].id : null;
+    event?.stopPropagation();
+    state.chats = state.chats.filter(c => c.id !== chatId);
+    
+    if (state.activeChatId === chatId) {
+      state.activeChatId = state.chats.length > 0 ? state.chats[0].id : null;
     }
 
-    StorageService.saveChats(AppState.chats);
-    renderHistoryList();
-
-    if (AppState.currentChatId) {
-      loadChat(AppState.currentChatId);
-    } else {
-      createNewChat();
-    }
-
-    ToastNotification.show('گفتگو حذف شد', 'info');
+    saveToStorage();
+    renderSidebarHistory();
+    loadActiveChat();
+    showToast('گفتگو حذف شد', 'info');
   }
 
-  function renderHistoryList() {
-    if (!DOM.chatHistoryList) return;
+  function renameChat(chatId, event) {
+    event?.stopPropagation();
+    const chat = state.chats.find(c => c.id === chatId);
+    if (!chat) return;
 
-    DOM.chatHistoryList.innerHTML = '';
+    const newTitle = prompt('عنوان جدید گفتگو را وارد کنید:', chat.title);
+    if (newTitle && newTitle.trim()) {
+      chat.title = newTitle.trim();
+      saveToStorage();
+      renderSidebarHistory();
+      if (state.activeChatId === chatId) {
+        DOM.chatTitleHeader.textContent = chat.title;
+      }
+    }
+  }
 
-    if (AppState.chats.length === 0) {
-      if (DOM.historyEmpty) DOM.historyEmpty.style.display = 'block';
+  function renderSidebarHistory(filterText = '') {
+    DOM.historyContainer.innerHTML = '';
+    
+    const filteredChats = state.chats.filter(c => 
+      c.title.toLowerCase().includes(filterText.toLowerCase())
+    );
+
+    if (filteredChats.length === 0) {
+      DOM.historyEmpty.style.display = 'block';
       return;
     }
 
-    if (DOM.historyEmpty) DOM.historyEmpty.style.display = 'none';
+    DOM.historyEmpty.style.display = 'none';
 
-    const titleDiv = document.createElement('div');
-    titleDiv.className = 'history-section-title';
-    titleDiv.textContent = 'گفتگوهای اخیر';
-    DOM.chatHistoryList.appendChild(titleDiv);
-
-    AppState.chats.forEach(chat => {
+    filteredChats.forEach(chat => {
       const item = document.createElement('div');
-      item.className = `history-item ${chat.id === AppState.currentChatId ? 'active' : ''}`;
+      item.className = `history-item ${chat.id === state.activeChatId ? 'active' : ''}`;
       
       item.innerHTML = `
-        <i class="fa-regular fa-message history-icon"></i>
-        <span class="history-title">${escapeHtml(chat.title)}</span>
-        <button class="delete-chat-btn" title="حذف گفتگو">
-          <i class="fa-solid fa-trash"></i>
-        </button>
+        <span class="history-item-title">${escapeHtml(chat.title)}</span>
+        <div class="history-item-actions">
+          <button class="history-action-btn edit-btn" title="تغییر نام"><i class="fa-solid fa-pen"></i></button>
+          <button class="history-action-btn delete-btn" title="حذف"><i class="fa-solid fa-trash"></i></button>
+        </div>
       `;
 
-      item.addEventListener('click', () => loadChat(chat.id));
-      
-      const delBtn = item.querySelector('.delete-chat-btn');
-      delBtn.addEventListener('click', (e) => deleteChat(chat.id, e));
+      item.addEventListener('click', () => {
+        state.activeChatId = chat.id;
+        renderSidebarHistory(filterText);
+        loadActiveChat();
+        if (window.innerWidth <= 768) toggleSidebar(false);
+      });
 
-      DOM.chatHistoryList.appendChild(item);
+      item.querySelector('.edit-btn').addEventListener('click', (e) => renameChat(chat.id, e));
+      item.querySelector('.delete-btn').addEventListener('click', (e) => deleteChat(chat.id, e));
+
+      DOM.historyContainer.appendChild(item);
     });
   }
 
-  // ------------------------------------------
-  // منطق ارسال و دریافت پیام
-  // ------------------------------------------
-  function handleSendMessage() {
-    const text = DOM.promptInput.value.trim();
-    if (!text || AppState.isGenerating) return;
-
-    if (!AppState.currentChatId) {
-      createNewChat();
-    }
-
-    const currentChat = AppState.chats.find(c => c.id === AppState.currentChatId);
-    if (!currentChat) return;
-
-    // به‌روزرسانی عنوان گفتگو اگر اولین پیام است
-    if (currentChat.messages.length === 0) {
-      currentChat.title = text.length > 30 ? text.substring(0, 30) + '...' : text;
-      renderHistoryList();
-    }
-
-    // افزودن پیام کاربر به وضعیت
-    const userMsg = {
-      id: 'msg_' + Date.now(),
-      sender: 'user',
-      text: text,
-      timestamp: new Date().toISOString()
-    };
-
-    currentChat.messages.push(userMsg);
-    StorageService.saveChats(AppState.chats);
-
-    // رندر پیام کاربر
-    if (DOM.welcomeContainer) DOM.welcomeContainer.style.display = 'none';
-    if (DOM.messagesList) DOM.messagesList.style.display = 'flex';
-
-    renderMessageBubble(text, 'user');
-
-    // ریست باکس ورودی
-    DOM.promptInput.value = '';
-    DOM.promptInput.style.height = 'auto';
-    DOM.sendBtn.disabled = true;
-    DOM.sendBtn.style.opacity = '0.5';
-
-    // نمایش وضعیت لودینگ و ثبت پاسخ پاسخ هوش مصنوعی
-    AppState.isGenerating = true;
-    const loadingId = renderLoadingBubble();
-
-    // شبیه‌سازی فراخوانی API و پاسخ هوش مصنوعی
-    setTimeout(() => {
-      removeLoadingBubble(loadingId);
-
-      const aiResponseText = generateMockResponse(text);
-
-      const botMsg = {
-        id: 'msg_' + Date.now(),
-        sender: 'bot',
-        text: aiResponseText,
-        timestamp: new Date().toISOString()
-      };
-
-      currentChat.messages.push(botMsg);
-      StorageService.saveChats(AppState.chats);
-
-      renderMessageBubble(aiResponseText, 'bot');
-      AppState.isGenerating = false;
-
-      if (DOM.promptInput.value.trim().length > 0) {
-        DOM.sendBtn.disabled = false;
-        DOM.sendBtn.style.opacity = '1';
+  DOM.newChatBtn?.addEventListener('click', createNewChat);
+  DOM.clearChatBtn?.addEventListener('click', () => {
+    if (!state.activeChatId) return;
+    if (confirm('آیا از پاک کردن پیام‌های این گفتگو اطمینان دارید؟')) {
+      const currentChat = state.chats.find(c => c.id === state.activeChatId);
+      if (currentChat) {
+        currentChat.messages = [];
+        saveToStorage();
+        loadActiveChat();
+        showToast('پیام‌ها پاک شدند', 'info');
       }
-    }, 1200);
+    }
+  });
+
+  DOM.searchHistoryInput?.addEventListener('input', (e) => {
+    renderSidebarHistory(e.target.value.trim());
+  });
+
+  // ==========================================================================
+  // 8. ورود سریع و پرامپت‌های پیشنهادی
+  // ==========================================================================
+  document.querySelectorAll('.quick-prompt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const promptText = btn.dataset.prompt;
+      if (promptText) {
+        DOM.promptInput.value = promptText;
+        handleSendMessage();
+      }
+    });
+  });
+
+  // ==========================================================================
+  // 9. تغییر ارتفاع اتوماتیک و کنترل دکمه ارسال
+  // ==========================================================================
+  DOM.promptInput?.addEventListener('input', () => {
+    DOM.promptInput.style.height = 'auto';
+    DOM.promptInput.style.height = Math.min(DOM.promptInput.scrollHeight, 180) + 'px';
+    
+    const length = DOM.promptInput.value.length;
+    DOM.charCounter.textContent = `${length} / 4000`;
+    
+    const isValid = length > 0 && length <= 4000;
+    DOM.sendBtn.disabled = !isValid;
+  });
+
+  DOM.promptInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!DOM.sendBtn.disabled) {
+        handleSendMessage();
+      }
+    }
+  });
+
+  DOM.sendBtn?.addEventListener('click', handleSendMessage);
+
+  // ==========================================================================
+  // 10. آپلود فایل و پیش‌نمایش
+  // ==========================================================================
+  DOM.fileUploadBtn?.addEventListener('click', () => DOM.fileInput.click());
+
+  DOM.fileInput?.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      state.attachedFiles.push(file);
+    });
+    renderFilePreviews();
+  });
+
+  function renderFilePreviews() {
+    if (state.attachedFiles.length === 0) {
+      DOM.filePreviewContainer.style.display = 'none';
+      DOM.filePreviewContainer.innerHTML = '';
+      return;
+    }
+
+    DOM.filePreviewContainer.style.display = 'flex';
+    DOM.filePreviewContainer.innerHTML = '';
+
+    state.attachedFiles.forEach((file, index) => {
+      const chip = document.createElement('div');
+      chip.className = 'file-chip';
+      chip.innerHTML = `
+        <i class="fa-solid fa-file-code"></i>
+        <span>${escapeHtml(file.name)}</span>
+        <i class="fa-solid fa-xmark file-chip-remove" data-index="${index}"></i>
+      `;
+
+      chip.querySelector('.file-chip-remove').addEventListener('click', () => {
+        state.attachedFiles.splice(index, 1);
+        renderFilePreviews();
+      });
+
+      DOM.filePreviewContainer.appendChild(chip);
+    });
   }
 
-  function renderMessageBubble(content, sender) {
+  // ==========================================================================
+  // 11. موتور پردازش و ارسال پیام
+  // ==========================================================================
+  function handleSendMessage() {
+    const text = DOM.promptInput.value.trim();
+    if (!text && state.attachedFiles.length === 0) return;
+
+    if (!state.activeChatId) {
+      const newChat = {
+        id: 'chat_' + Date.now(),
+        title: text.substring(0, 30) || 'گفتگوی جدید',
+        createdAt: new Date().toISOString(),
+        messages: []
+      };
+      state.chats.unshift(newChat);
+      state.activeChatId = newChat.id;
+      renderSidebarHistory();
+    }
+
+    const currentChat = state.chats.find(c => c.id === state.activeChatId);
+    if (currentChat && currentChat.messages.length === 0 && text) {
+      currentChat.title = text.substring(0, 30);
+      DOM.chatTitleHeader.textContent = currentChat.title;
+      renderSidebarHistory();
+    }
+
+    // افزودن پیام کاربر
+    currentChat.messages.push({ sender: 'user', text: text });
+    renderMessageItem(text, 'user');
+
+    // ریست حالت ورودی
+    DOM.promptInput.value = '';
+    DOM.promptInput.style.height = 'auto';
+    DOM.charCounter.textContent = '0 / 4000';
+    DOM.sendBtn.disabled = true;
+    state.attachedFiles = [];
+    renderFilePreviews();
+
+    DOM.welcomeContainer.style.display = 'none';
+    DOM.messagesList.style.display = 'flex';
+
+    // نمایش وضعیت لودینگ
+    const loadingId = showLoadingIndicator();
+
+    // شبیه‌سازی پاسخ استریمینگ هوش مصنوعی
+    simulateAIResponse(text, loadingId, currentChat);
+  }
+
+  function renderMessageItem(content, sender, animate = true) {
     const msgItem = document.createElement('div');
     msgItem.className = `message-item ${sender}`;
 
@@ -498,14 +450,14 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
   }
 
-  function renderLoadingBubble() {
+  function showLoadingIndicator() {
     const id = 'loading_' + Date.now();
     const msgItem = document.createElement('div');
-    msgItem.className = 'message-item bot loading-item';
+    msgItem.className = 'message-item bot';
     msgItem.id = id;
 
     msgItem.innerHTML = `
-      <div class="message-bubble loading-bubble">
+      <div class="message-bubble">
         <div class="typing-indicator">
           <span></span>
           <span></span>
@@ -519,269 +471,289 @@ document.addEventListener('DOMContentLoaded', () => {
     return id;
   }
 
-  function removeLoadingBubble(id) {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  }
+  function simulateAIResponse(userPrompt, loadingId, currentChat) {
+    setTimeout(() => {
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) loadingEl.remove();
 
-  function scrollToBottom() {
-    if (DOM.chatContent) {
-      DOM.chatContent.scrollTop = DOM.chatContent.scrollHeight;
-    }
-  }
-
-  // بارگیری اولیه لیست گفتگوها
-  renderHistoryList();
-  if (AppState.chats.length > 0) {
-    loadChat(AppState.chats[0].id);
-  }
-});
-
-// ==========================================
-// 5. پاسخ هوشمند شبیه‌سازی شده (Mock AI Response)
-// ==========================================
-function generateMockResponse(prompt) {
-  const lower = prompt.toLowerCase();
-
-  if (lower.includes('کد') || lower.includes('html') || lower.includes('برنامه')) {
-    return `کد مورد نظر شما با رعایت تمام استانداردهای مدرن آماده شد:
+      let mockResponse = `پاسخ بررسی شد. این یک کد نمونه کامل طبق درخواست شماست:
 
 \`\`\`html
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نمونه پروژه کاملا استاندارد</title>
+  <title>نمونه کارت UI</title>
   <style>
-    body {
-      font-family: 'Vazirmatn', sans-serif;
-      background-color: #f4f6f9;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .container {
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-      text-align: center;
-    }
-    button {
-      background: #1a73e8;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #1557b0;
-    }
+    body { font-family: Tahoma, sans-serif; background: #f4f4f9; padding: 20px; }
+    .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>پروژه هوش مصنوعی</h1>
-    <p>این یک کد نمونه اجرا شده و بدون باگ است.</p>
-    <button onclick="alert('عملیات با موفقیت انجام شد!')">کلیک کنید</button>
+  <div class="card">
+    <h2>عنوان کارت</h2>
+    <p>این یک متن توضیحی داخل کارت است.</p>
   </div>
 </body>
 </html>
 \`\`\`
 
-### ویژگی‌های اصلی این کد:
-1. **پشتیبانی کامل از RTL**: چیدمان راست‌به‌چپ برای زبان فارسی.
-2. **طراحی واکنش‌گرا (Responsive)**: نمایش صحیح در موبایل و دسکتاپ.
-3. **استایل‌دهی مدرن**: بهره‌گیری از Shadow و Border-radius انحنا دار.`;
+### نکات کد:
+- استفاده از ساختار استاندارد HTML5
+- رعایت جهت‌نما \`dir="rtl"\` برای زبان فارسی`;
+
+      if (userPrompt.includes('پایتون')) {
+        mockResponse = `این هم کد پایتون محاسبه فاکتوریل:
+
+\`\`\`python
+def factorial(n):
+    if n == 0 or n == 1:
+        return 1
+    return n * factorial(n - 1)
+
+# تست تابع
+number = 5
+print(f"فاکتوریل {number} برابر است با: {factorial(number)}")
+\`\`\`
+
+**توضیحات:** این تابع به صورت **بازگشتی (Recursive)** نوشته شده است.`;
+      }
+
+      currentChat.messages.push({ sender: 'bot', text: mockResponse });
+      saveToStorage();
+      renderMessageItem(mockResponse, 'bot');
+    }, 1200);
   }
 
-  return `درخواست شما با موفقیت دریافت شد: **"${prompt}"**
-
-من آماده‌ام تا در زمینه‌های مختلف از جمله:
-- **توسعه وب و برنامه‌نویسی**
-- **تحلیل داده‌ها و حل مسائل**
-- **نگارش و تولید محتوا**
-
-به شما کمک کنم. اگر جزئیات بیشتری مد نظرتان است، حتماً بیان کنید!`;
-}
-
-// ==========================================
-// 6. موتور رندرینگ پیشرفته مارک‌داون و سنتکس
-// ==========================================
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function highlightSyntax(code, lang) {
-  let escaped = escapeHtml(code);
-  const l = (lang || '').toLowerCase().trim();
-
-  // HTML / XML
-  if (l === 'html' || l === 'xml' || l === 'svg') {
-    return escaped
-      .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="code-comment">$1</span>')
-      .replace(/(&lt;\/?[a-zA-Z0-9-]+)/g, '<span class="code-tag">$1</span>')
-      .replace(/\s([a-zA-Z-]+)=/g, ' <span class="code-attr">$1</span>=')
-      .replace(/(&quot;.*?&quot;|&#39;.*?&#39;)/g, '<span class="code-string">$1</span>');
+  function scrollToBottom() {
+    DOM.chatContent.scrollTop = DOM.chatContent.scrollHeight;
   }
 
-  // CSS / SCSS
-  if (l === 'css' || l === 'scss') {
-    return escaped
-      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
-      .replace(/([a-zA-Z-]+)\s*:/g, '<span class="code-keyword">$1</span>:')
-      .replace(/(#[a-fa-f0-9]{3,8}|\b\d+px|\b\d+rem|\b\d+vh|\b\d+vw|\b\d+%/gi, '<span class="code-number">$1</span>')
-      .replace(/(&quot;.*?&quot;|&#39;.*?&#39;)/g, '<span class="code-string">$1</span>');
+  DOM.chatContent?.addEventListener('scroll', () => {
+    const diff = DOM.chatContent.scrollHeight - DOM.chatContent.clientHeight - DOM.chatContent.scrollTop;
+    if (diff > 150) {
+      DOM.scrollToBottomBtn.style.display = 'flex';
+    } else {
+      DOM.scrollToBottomBtn.style.display = 'none';
+    }
+  });
+
+  DOM.scrollToBottomBtn?.addEventListener('click', scrollToBottom);
+
+  // ==========================================================================
+  // 12. رندر مارک‌داون و هایلایت سنتکس کد
+  // ==========================================================================
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
-  // JavaScript / TypeScript / Python / C++ / PHP
-  if (['js', 'javascript', 'ts', 'typescript', 'python', 'py', 'cpp', 'c', 'php', 'json'].includes(l)) {
-    const keywords = /\b(const|let|var|function|return|if|else|for|while|import|export|from|class|async|await|def|print|in|is|not|and|or|try|catch|new|this|public|private|protected)\b/g;
-    return escaped
-      .replace(/(\/\/.*$\vert{}\/\*[\s\S]*?\*\/\vert{}#.*$)/gm, '<span class="code-comment">$1</span>')
-      .replace(keywords, '<span class="code-keyword">$1</span>')
-      .replace(/(&quot;.*?&quot;|&#39;.*?&#39;|`.*?`)/g, '<span class="code-string">$1</span>')
-      .replace(/\b(\d+)\b/g, '<span class="code-number">$1</span>');
+  function highlightSyntax(code, lang) {
+    let escaped = escapeHtml(code);
+    const l = (lang || '').toLowerCase();
+
+    if (l === 'html' || l === 'xml') {
+      return escaped
+        .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="code-comment">$1</span>')
+        .replace(/(&lt;\/?[a-zA-Z0-9-]+)/g, '<span class="code-tag">$1</span>')
+        .replace(/\s([a-zA-Z-]+)=/g, ' <span class="code-attr">$1</span>=')
+        .replace(/(&quot;.*?&quot;|&#39;.*?&#39;)/g, '<span class="code-string">$1</span>');
+    }
+
+    if (l === 'css') {
+      return escaped
+        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
+        .replace(/([a-zA-Z-]+)\s*:/g, '<span class="code-keyword">$1</span>:')
+        .replace(/(#[a-fa-f0-9]{3,8}|\b\d+px|\b\d+rem)/gi, '<span class="code-number">$1</span>')
+        .replace(/(&quot;.*?&quot;|&#39;.*?&#39;)/g, '<span class="code-string">$1</span>');
+    }
+
+    if (['js', 'javascript', 'ts', 'python', 'py'].includes(l)) {
+      const keywords = /\b(const|let|var|function|return|if|else|for|while|import|export|class|def|print|async|await)\b/g;
+      return escaped
+        .replace(/(\/\/.*$|\/\*[\s\S]*?\*\/|#.*$)/gm, '<span class="code-comment">$1</span>')
+        .replace(keywords, '<span class="code-keyword">$1</span>')
+        .replace(/(&quot;.*?&quot;|&#39;.*?&#39;|`.*?`)/g, '<span class="code-string">$1</span>')
+        .replace(/\b(\d+)\b/g, '<span class="code-number">$1</span>');
+    }
+
+    return escaped;
   }
 
-  return escaped;
-}
+  function renderMarkdown(text) {
+    if (!text) return '';
 
-function renderMarkdown(text) {
-  if (!text) return '';
+    const codeBlocks = [];
 
-  const codeBlocks = [];
+    // ۱. استخراج بلوک‌های کد سه تایی
+    let processed = text.replace(/```(\w*)\r?\n?([\s\S]*?)```/g, (match, lang, code) => {
+      const index = codeBlocks.length;
+      const language = lang.trim() || 'code';
+      const highlightedCode = highlightSyntax(code.trim(), language);
 
-  // ۱. استخراج و مجزاسازی بلوک‌های کد سه تایی (```)
-  let processed = text.replace(/```(\w*)\r?\n?([\s\S]*?)```/g, (match, lang, code) => {
-    const index = codeBlocks.length;
-    const language = lang.trim() || 'code';
-    const highlightedCode = highlightSyntax(code.trim(), language);
-
-    const blockHtml = `
-      <div class="code-block-container" dir="ltr">
-        <div class="code-block-header">
-          <span class="code-lang">${escapeHtml(language)} <i class="fa-solid fa-code"></i></span>
-          <div class="code-actions">
-            <button type="button" class="code-btn copy-btn" onclick="copyCodeSnippet(this)" title="کپی کد">
-              <i class="fa-regular fa-copy"></i>
-              <span>کپی</span>
-            </button>
-            <button type="button" class="code-btn download-btn" onclick="downloadCodeSnippet(this)" title="دانلود فایل">
-              <i class="fa-solid fa-download"></i>
-            </button>
+      const blockHtml = `
+        <div class="code-block-container" dir="ltr">
+          <div class="code-block-header">
+            <span class="code-lang"><i class="fa-solid fa-code"></i> ${escapeHtml(language)}</span>
+            <div class="code-actions">
+              <button type="button" class="code-btn" onclick="copyCodeSnippet(this)">
+                <i class="fa-regular fa-copy"></i> کپی
+              </button>
+              <button type="button" class="code-btn" onclick="downloadCodeSnippet(this)">
+                <i class="fa-solid fa-download"></i> دانلود
+              </button>
+            </div>
           </div>
-        </div>
-        <pre><code>${highlightedCode}</code></pre>
-      </div>`;
+          <pre><code>${highlightedCode}</code></pre>
+        </div>`;
 
-    codeBlocks.push(blockHtml);
-    return `___CODE_BLOCK_${index}___`;
-  });
+      codeBlocks.push(blockHtml);
+      return `___CODE_BLOCK_${index}___`;
+    });
 
-  // ۲. امن‌سازی کاراکترهای عمومی HTML
-  processed = escapeHtml(processed);
+    // ۲. امن‌سازی متن
+    processed = escapeHtml(processed);
 
-  // ۳. پردازش کدهای درون‌خطی (Inline Code)
-  processed = processed.replace(/`([^`]+)`/g, '<code class="inline-code" dir="ltr">$1</code>');
+    // ۳. کدهای درون‌خطی Inline Code
+    processed = processed.replace(/`([^`]+)`/g, '<code class="inline-code" dir="ltr">$1</code>');
 
-  // ۴. پردازش عناوین و تیترهای مارک‌داون (Headers)
-  processed = processed.replace(/^### (.*$)/gim, '<h3 class="md-h3">$1</h3>');
-  processed = processed.replace(/^## (.*$)/gim, '<h2 class="md-h2">$1</h2>');
-  processed = processed.replace(/^# (.*$)/gim, '<h1 class="md-h1">$1</h1>');
+    // ۴. تیترها
+    processed = processed.replace(/^### (.*$)/gim, '<h3 class="md-h3">$1</h3>');
+    processed = processed.replace(/^## (.*$)/gim, '<h2 class="md-h2">$1</h2>');
+    processed = processed.replace(/^# (.*$)/gim, '<h1 class="md-h1">$1</h1>');
 
-  // ۵. پردازش متون ضخیم (Bold) و مورب (Italic)
-  processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // ۵. فرمت متن (بولد و ایتالیک)
+    processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    processed = processed.replace(/\n/g, '<br>');
 
-  // ۶. تبدیل شکستن خطوط به <br>
-  processed = processed.replace(/\n/g, '<br>');
+    // ۶. جایگذاری مجدد بلوک‌های کد
+    codeBlocks.forEach((block, index) => {
+      processed = processed.replace(`___CODE_BLOCK_${index}___`, block);
+    });
 
-  // ۷. بازگرداندن بلوک‌های کد به محتوای اصلی
-  codeBlocks.forEach((block, index) => {
-    processed = processed.replace(`___CODE_BLOCK_${index}___`, block);
-  });
+    return processed;
+  }
 
-  return processed;
-}
-
-// ==========================================
-// 7. توابع جهانی عملیات کد (کپی و دانلود)
-// ==========================================
-
-window.copyCodeSnippet = function(btn) {
-  const container = btn.closest('.code-block-container');
-  if (!container) return;
-
-  const code = container.querySelector('code')?.innerText || '';
-  navigator.clipboard.writeText(code).then(() => {
-    const icon = btn.querySelector('i');
-    const span = btn.querySelector('span');
-
-    if (icon) icon.className = 'fa-solid fa-check';
-    if (span) span.textContent = 'کپی شد';
-
-    ToastNotification.show('کد در حافظه کپی شد', 'success');
-
-    setTimeout(() => {
-      if (icon) icon.className = 'fa-regular fa-copy';
-      if (span) span.textContent = 'کپی';
-    }, 2000);
-  }).catch(() => {
-    ToastNotification.show('خطا در کپی کردن کد', 'error');
-  });
-};
-
-window.downloadCodeSnippet = function(btn) {
-  const container = btn.closest('.code-block-container');
-  if (!container) return;
-
-  const code = container.querySelector('code')?.innerText || '';
-  const langText = container.querySelector('.code-lang')?.innerText.trim().toLowerCase() || 'txt';
-
-  const extMap = {
-    html: 'html',
-    css: 'css',
-    js: 'js',
-    javascript: 'js',
-    ts: 'ts',
-    typescript: 'ts',
-    python: 'py',
-    py: 'py',
-    cpp: 'cpp',
-    c: 'c',
-    php: 'php',
-    json: 'json',
-    xml: 'xml',
-    sql: 'sql'
+  // ==========================================================================
+  // 13. توابع جهانی کپی و دانلود کد
+  // ==========================================================================
+  window.copyCodeSnippet = function(btn) {
+    const container = btn.closest('.code-block-container');
+    const code = container.querySelector('code')?.innerText || '';
+    
+    navigator.clipboard.writeText(code).then(() => {
+      btn.innerHTML = `<i class="fa-solid fa-check"></i> کپی شد`;
+      setTimeout(() => {
+        btn.innerHTML = `<i class="fa-regular fa-copy"></i> کپی`;
+      }, 2000);
+      showToast('کد در حافظه کپی شد', 'success');
+    });
   };
 
-  const ext = extMap[langText] || 'txt';
-  const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
+  window.downloadCodeSnippet = function(btn) {
+    const container = btn.closest('.code-block-container');
+    const code = container.querySelector('code')?.innerText || '';
+    const lang = container.querySelector('.code-lang')?.innerText.trim().toLowerCase() || 'txt';
+    
+    const extMap = { html: 'html', css: 'css', js: 'js', python: 'py', py: 'py' };
+    const ext = extMap[lang] || 'txt';
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `code_${Date.now()}.${ext}`;
-  document.body.appendChild(a);
-  a.click();
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `code.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('فایل کد دانلود شد', 'info');
+  };
 
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // ==========================================================================
+  // 14. مدال تنظیمات
+  // ==========================================================================
+  function toggleModal(show) {
+    if (show) DOM.modal.classList.add('active');
+    else DOM.modal.classList.remove('active');
+  }
 
-  ToastNotification.show(`فایل code.${ext} دانلود شد`, 'success');
-};
+  DOM.openSettingsBtn?.addEventListener('click', () => toggleModal(true));
+  DOM.settingsGearBtn?.addEventListener('click', () => toggleModal(true));
+  DOM.closeModalBtn?.addEventListener('click', () => toggleModal(false));
+  DOM.modal?.addEventListener('click', (e) => {
+    if (e.target === DOM.modal) toggleModal(false);
+  });
+
+  document.querySelectorAll('.modal-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector(`[data-panel="${tab.dataset.tab}"]`)?.classList.add('active');
+    });
+  });
+
+  DOM.temperatureInput?.addEventListener('input', (e) => {
+    DOM.tempValueDisplay.textContent = e.target.value;
+  });
+
+  function applySettingsToUI() {
+    if (DOM.modelSelect) DOM.modelSelect.value = state.settings.model;
+    if (DOM.temperatureInput) DOM.temperatureInput.value = state.settings.temperature;
+    if (DOM.tempValueDisplay) DOM.tempValueDisplay.textContent = state.settings.temperature;
+    if (DOM.maxTokensSelect) DOM.maxTokensSelect.value = state.settings.maxTokens;
+    if (DOM.systemInstruction) DOM.systemInstruction.value = state.settings.systemInstruction;
+    if (DOM.currentModelName) {
+      const selectedOpt = DOM.modelSelect.options[DOM.modelSelect.selectedIndex];
+      DOM.currentModelName.textContent = selectedOpt.text.split('(')[0].trim();
+    }
+  }
+
+  DOM.saveSettingsBtn?.addEventListener('click', () => {
+    state.settings.model = DOM.modelSelect.value;
+    state.settings.temperature = parseFloat(DOM.temperatureInput.value);
+    state.settings.maxTokens = parseInt(DOM.maxTokensSelect.value);
+    state.settings.systemInstruction = DOM.systemInstruction.value.trim();
+
+    saveToStorage();
+    applySettingsToUI();
+    toggleModal(false);
+    showToast('تنظیمات با موفقیت ذخیره شد', 'success');
+  });
+
+  DOM.clearAllHistoryBtn?.addEventListener('click', () => {
+    if (confirm('آیا از حذف تمام گفتگوها اطمینان دارید؟ این عمل غیرقابل بازگشت است.')) {
+      state.chats = [];
+      state.activeChatId = null;
+      saveToStorage();
+      renderSidebarHistory();
+      loadActiveChat();
+      toggleModal(false);
+      showToast('تمام گفتگوها پاکسازی شدند', 'info');
+    }
+  });
+
+  DOM.exportDataBtn?.addEventListener('click', () => {
+    const dataStr = JSON.stringify(state.chats, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gemini_backup_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('خروجی با موفقیت گرفته شد', 'success');
+  });
+
+  // ==========================================================================
+  // 15. راه‌اندازی اولیه
+  // ==========================================================================
+  loadFromStorage();
+  renderSidebarHistory();
+  loadActiveChat();
+});
