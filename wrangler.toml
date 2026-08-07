@@ -4,6 +4,13 @@ compatibility_date = "2026-08-01"
 
 [assets]
 directory = "./"
+binding = "ASSETS"
 
 [[kv_namespaces]]
 binding = "USER_MEMORY"
+
+[build]
+command = ""
+
+[build.upload]
+format = "modules"
