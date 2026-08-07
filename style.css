@@ -388,8 +388,9 @@ input:checked + .slider::before { transform: translateX(-18px); }
   .message-col { max-width: 92%; }
   .settings-modal-card { padding: 16px; }
 }
+
 /* ============================================================
-   CODE BLOCK ENHANCEMENTS (برای دکمه کپی کد)
+   🆕 CODE BLOCK ENHANCEMENTS (دکمه کپی کد)
    ============================================================ */
 
 .code-block-wrapper {
@@ -416,24 +417,6 @@ input:checked + .slider::before { transform: translateX(-18px); }
   color: #d4d4d4 !important;
 }
 
-/* هدر هر کدبلاک (نمایش زبان + دکمه کپی) */
-.code-block-wrapper .code-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 12px;
-  background: #2d2d2d;
-  border-bottom: 1px solid #3d3d3d;
-}
-
-.code-block-wrapper .code-lang {
-  color: #858585;
-  font-size: 11px;
-  font-family: monospace;
-  text-transform: lowercase;
-}
-
-/* دکمه کپی کد */
 .copy-code-btn {
   background: rgba(255,255,255,0.06);
   border: none;
@@ -458,36 +441,6 @@ input:checked + .slider::before { transform: translateX(-18px); }
   font-size: 12px;
 }
 
-/* دکمه کپی متن کلی پیام */
-.msg-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s;
-  margin-top: 4px;
-}
-
-.message-row:hover .msg-actions {
-  opacity: 1;
-}
-
-.msg-action-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  transition: all 0.15s;
-}
-
-.msg-action-btn:hover {
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
-
-/* ===== Dark mode fixes for code blocks ===== */
 [data-theme="dark"] .code-block-wrapper {
   border-color: rgba(255,255,255,0.06);
   box-shadow: 0 2px 12px rgba(0,0,0,0.4);
@@ -504,15 +457,6 @@ input:checked + .slider::before { transform: translateX(-18px); }
 [data-theme="dark"] .copy-code-btn:hover {
   background: rgba(255,255,255,0.1);
   color: #b0b0b0;
-}
-
-[data-theme="dark"] .code-block-wrapper .code-header {
-  background: #222222;
-  border-bottom-color: #333333;
-}
-
-[data-theme="dark"] .code-block-wrapper .code-lang {
-  color: #6b6b6b;
 }
 
 /* ===== سیستم‌نوتیس (پیام‌های سیستمی) ===== */
