@@ -1,5 +1,5 @@
 // ==========================================================================
-// ChatGPT Classic — Gemini Edition — app.js (نسخه اصلاح‌شده)
+// ChatGPT Classic — Gemini Edition — app.js (نسخه نهایی با کپی کد)
 // ==========================================================================
 
 // ---- Model catalog (single source of truth) --------------------------------
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyTheme(state.theme);
 
-  // ---- Long-term memory (Cloudflare KV / Backend API) ----
+  // ---- Long-term memory ----
   if (memoryEnabledToggle) {
     memoryEnabledToggle.checked = state.memoryEnabled;
     memoryEnabledToggle.addEventListener('change', () => {
@@ -740,17 +740,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sendBtn) sendBtn.addEventListener('click', handleSend);
 
   // ==========================================================================
-  // ⭐⭐⭐ CORE SEND LOGIC (اصلاح‌شده) ⭐⭐⭐
+  // ⭐⭐⭐ CORE SEND LOGIC ⭐⭐⭐
   // ==========================================================================
   async function handleSend() {
     const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
 
-    // 🎯 گرفتن اسم مدل از المنت UI یا state
     const modelSelectEl = document.getElementById('modelSelect');
     const activeModelId = (modelSelectEl ? modelSelectEl.value : state.modelId || '').toLowerCase();
-
-    // 🛡️ تشخیص قطعی مدل‌های تصویرساز Imagen
     const isImagen = activeModelId.includes('imagen');
 
     if (welcomeContainer) welcomeContainer.style.display = 'none';
@@ -772,15 +769,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (isImagen) {
-        // 🎨 ارسال به اندپوینت مخصوص تصویر
         const modelObj = findModel(activeModelId) || { id: activeModelId };
         await handleImagenGenerate(modelObj, text || displayText, bubble);
       } else {
-        // 💬 ارسال به اندپوینت چت متنی
         const modelObj = findModel(activeModelId) || { id: activeModelId };
         const userEntry = { role: 'user', parts: [{ text: text || displayText }] };
         conversationHistory.push(userEntry);
-        // ✅ اینجا تابع handleGeminiGenerate رو صدا می‌زنیم که در پایین تعریف شده
         await handleGeminiGenerate(modelObj, bubble);
       }
       autoSaveChat();
@@ -793,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // ✅ GEMINI CHAT GENERATION HANDLER (تعریف شده)
+  // ✅ GEMINI CHAT GENERATION HANDLER
   // ==========================================================================
   async function handleGeminiGenerate(model, bubble) {
     const modelId = model?.id || state.modelId || 'gemini-3.6-flash';
@@ -807,9 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
         maxOutputTokens: state.params.maxOutputTokens || 2048,
       },
     };
-
-    // اگر فایل آپلود شده بود، به درخواست اضافه کن
-    // (فعلاً ساده نگهش داریم، پشتیبانی کامل از فایل نیاز به تغییر ساختار دارد)
 
     const sys = buildSystemInstruction();
     if (sys) requestBody.systemInstruction = sys;
@@ -825,19 +816,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const assistantText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'پاسخی دریافت نشد.';
     
-    // پاک کردن انیمیشن تایپ
     bubble.classList.remove('typing-dots');
-    
-    // رندر مارک‌داون
     bubble.innerHTML = renderMarkdown(assistantText);
-    
-    // دکمه کپی
     attachMessageEnhancements(bubble);
     
-    // ذخیره در تاریخچه
     conversationHistory.push({ role: 'model', parts: [{ text: assistantText }] });
     
-    // به‌روزرسانی حافظه بلندمدت (در پس‌زمینه)
     const lastUserMsg = conversationHistory.findLast(m => m.role === 'user');
     if (lastUserMsg) {
       updateLongTermMemory(lastUserMsg.parts[0].text, assistantText);
@@ -845,7 +829,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // IMAGEN GENERATION HANDLER (اصلاح‌شده)
+  // ✅ IMAGEN GENERATION HANDLER
   // ==========================================================================
   async function handleImagenGenerate(model, promptText, bubble) {
     const modelId = model?.id || state.modelId || 'imagen-3.0-generate-001';
@@ -866,10 +850,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     bubble.classList.remove('typing-dots');
     
-    // بررسی ساختار پاسخ Imagen
     let images = [];
     if (data.predictions && data.predictions.length > 0) {
-      // فرمت Imagen: predictions[0].bytesBase64Encoded
       images = data.predictions.map(p => p.bytesBase64Encoded).filter(Boolean);
     } else if (data.images && data.images.length > 0) {
       images = data.images;
@@ -891,6 +873,112 @@ document.addEventListener('DOMContentLoaded', () => {
       bubble.textContent = 'تصویری تولید نشد.';
     }
     attachMessageEnhancements(bubble);
+  }
+
+  // ==========================================================================
+  // 🎨 RENDER MARKDOWN (با پشتیبانی کامل از کپی کد)
+  // ==========================================================================
+  function renderMarkdown(text) {
+    if (!text) return '';
+    
+    let formatted = escapeHtml(text);
+    
+    // کدبلاک‌های سه‌بک‌تیک با زبان
+    formatted = formatted.replace(/```(\w*)\s*([\s\S]*?)```/g, function(match, lang, code) {
+      const langLabel = lang || 'text';
+      const uid = 'code-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+      return `<div class="code-block-wrapper" style="position:relative;margin:12px 0;border-radius:10px;overflow:hidden;background:#1e1e1e;direction:ltr;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#2d2d2d;border-bottom:1px solid #3d3d3d;">
+          <span style="color:#858585;font-size:11px;font-family:monospace;">${langLabel}</span>
+          <button class="copy-code-btn" data-target="${uid}" style="background:transparent;border:none;color:#858585;cursor:pointer;font-size:12px;padding:4px 10px;border-radius:4px;transition:all 0.15s;">
+            <i class="fa-regular fa-copy"></i> کپی
+          </button>
+        </div>
+        <pre style="margin:0;padding:14px 16px;overflow-x:auto;background:#1e1e1e;color:#d4d4d4;font-family:'Fira Code',monospace;font-size:13px;line-height:1.6;direction:ltr;text-align:left;">
+          <code id="${uid}" style="font-family:inherit;background:transparent;padding:0;white-space:pre-wrap;word-break:break-word;">${code.trim()}</code>
+        </pre>
+      </div>`;
+    });
+    
+    // کدهای تک‌بک‌تیک (inline)
+    formatted = formatted.replace(/`([^`]+)`/g, '<code style="background:rgba(127,127,127,0.15);padding:2px 6px;border-radius:4px;font-size:13.5px;">$1</code>');
+    
+    // بقیه مارک‌داون
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    return formatted;
+  }
+
+  // ==========================================================================
+  // 🔧 ATTACH MESSAGE ENHANCEMENTS (با Event Delegation برای کدبلاک‌ها)
+  // ==========================================================================
+  function attachMessageEnhancements(bubble) {
+    // دکمه کپی متن کلی
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'msg-action-btn';
+    copyBtn.title = 'کپی متن';
+    copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+    copyBtn.style.cssText = 'background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;';
+    copyBtn.addEventListener('mouseenter', () => { copyBtn.style.backgroundColor = 'var(--bg-input)'; });
+    copyBtn.addEventListener('mouseleave', () => { copyBtn.style.backgroundColor = 'transparent'; });
+    copyBtn.addEventListener('click', () => {
+      const text = bubble.textContent || bubble.innerText || '';
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('متن کپی شد ✅', 'success');
+      }).catch(() => {
+        const range = document.createRange();
+        range.selectNode(bubble);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+        showToast('متن کپی شد ✅', 'success');
+      });
+    });
+
+    let actionsContainer = bubble.parentElement.querySelector('.msg-actions');
+    if (!actionsContainer) {
+      actionsContainer = document.createElement('div');
+      actionsContainer.className = 'msg-actions';
+      bubble.parentElement.appendChild(actionsContainer);
+    }
+    actionsContainer.appendChild(copyBtn);
+
+    // Event Delegation برای دکمه‌های کپی کد (یکبار کل داکیومنت)
+    if (!window._codeCopyListenerAttached) {
+      window._codeCopyListenerAttached = true;
+      document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.copy-code-btn');
+        if (!btn) return;
+        
+        const targetId = btn.dataset.target;
+        if (!targetId) return;
+        
+        const codeElement = document.getElementById(targetId);
+        if (!codeElement) return;
+        
+        const codeText = codeElement.textContent || codeElement.innerText || '';
+        
+        navigator.clipboard.writeText(codeText).then(() => {
+          const originalHtml = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-regular fa-check"></i> کپی شد!';
+          btn.style.color = '#22c55e';
+          setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.style.color = '#858585';
+          }, 2000);
+          showToast('کد کپی شد ✅', 'success');
+        }).catch(() => {
+          const range = document.createRange();
+          range.selectNode(codeElement);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+          document.execCommand('copy');
+          showToast('کد کپی شد ✅', 'success');
+        });
+      });
+    }
   }
 
   // ==========================================================================
@@ -929,16 +1017,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return { row, bubble: row.querySelector('.message-bubble') };
   }
 
-  function appendNotice(msg) {
+  function appendSystemNotice(msg) {
     const div = document.createElement('div');
     div.className = 'system-notice';
     div.innerHTML = `<i class="fa-solid fa-info-circle"></i> ${escapeHtml(msg)}`;
     messagesList.appendChild(div);
     scrollToBottom();
-  }
-
-  function appendSystemNotice(msg) {
-    appendNotice(msg);
   }
 
   function renderError(bubble, errText) {
@@ -963,52 +1047,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function renderMarkdown(text) {
-    if (!text) return '';
-    // تبدیل ساده‌ی کدهای داخل گراو (```)
-    let formatted = escapeHtml(text);
-    formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-    formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    formatted = formatted.replace(/\n/g, '<br>');
-    return formatted;
-  }
-
-  function attachMessageEnhancements(bubble) {
-    // دکمه کپی
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'msg-action-btn';
-    copyBtn.title = 'کپی متن';
-    copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-    copyBtn.style.cssText = 'background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;';
-    copyBtn.addEventListener('mouseenter', () => { copyBtn.style.backgroundColor = 'var(--bg-input)'; });
-    copyBtn.addEventListener('mouseleave', () => { copyBtn.style.backgroundColor = 'transparent'; });
-    copyBtn.addEventListener('click', () => {
-      const text = bubble.textContent || bubble.innerText || '';
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('متن کپی شد', 'success');
-      }).catch(() => {
-        // fallback
-        const range = document.createRange();
-        range.selectNode(bubble);
-        window.getSelection().removeAllRanges();
-        window.getSelection().addRange(range);
-        document.execCommand('copy');
-        showToast('متن کپی شد', 'success');
-      });
-    });
-
-    // پیدا کردن یا ساختن container برای دکمه‌ها
-    let actionsContainer = bubble.parentElement.querySelector('.msg-actions');
-    if (!actionsContainer) {
-      actionsContainer = document.createElement('div');
-      actionsContainer.className = 'msg-actions';
-      bubble.parentElement.appendChild(actionsContainer);
-    }
-    actionsContainer.appendChild(copyBtn);
   }
 
   async function testConnection() {
