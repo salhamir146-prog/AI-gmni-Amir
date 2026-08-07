@@ -1,3 +1,9 @@
+/**
+ * ============================================================================
+ * Gemini AI Studio - Complete Fixed Engine (app.js)
+ * مدیریت کامل گفتگوها، تنظیمات، رندر دقیق مارک‌داون بدون باگ و هایلایت کد
+ * ============================================================================
+ */
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -205,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     DOM.chatTitleHeader.textContent = currentChat.title;
 
     currentChat.messages.forEach(msg => {
-      renderMessageItem(msg.text, msg.sender, false);
+      renderMessageItem(msg.text, msg.sender);
     });
 
     scrollToBottom();
@@ -307,6 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const promptText = btn.dataset.prompt;
       if (promptText) {
         DOM.promptInput.value = promptText;
+        DOM.promptInput.dispatchEvent(new Event('input'));
         handleSendMessage();
       }
     });
@@ -422,11 +429,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // نمایش وضعیت لودینگ
     const loadingId = showLoadingIndicator();
 
-    // شبیه‌سازی پاسخ استریمینگ هوش مصنوعی
+    // شبیه‌سازی پاسخ هوشمند و داینامیک هوش مصنوعی
     simulateAIResponse(text, loadingId, currentChat);
   }
 
-  function renderMessageItem(content, sender, animate = true) {
+  function renderMessageItem(content, sender) {
     const msgItem = document.createElement('div');
     msgItem.className = `message-item ${sender}`;
 
@@ -465,58 +472,27 @@ document.addEventListener('DOMContentLoaded', () => {
     return id;
   }
 
+  // شبیه‌سازی هوشمند و تغییر یافته برای پاسخ‌های داینامیک
   function simulateAIResponse(userPrompt, loadingId, currentChat) {
     setTimeout(() => {
       const loadingEl = document.getElementById(loadingId);
       if (loadingEl) loadingEl.remove();
 
-      let mockResponse = `پاسخ بررسی شد. این یک کد نمونه کامل طبق درخواست شماست:
+      let finalResponse = `پاسخ شما را دریافت کردم. در حال حاضر من یک رابط فرانت‌اند آفلاین هستم. درخواست شما یعنی: "${userPrompt}" به زودی با اتصال به API بک‌اند پردازش خواهد شد.`;
 
-\`\`\`html
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>نمونه کارت UI</title>
-  <style>
-    body { font-family: Tahoma, sans-serif; background: #f4f4f9; padding: 20px; }
-    .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2>عنوان کارت</h2>
-    <p>این یک متن توضیحی داخل کارت است.</p>
-  </div>
-</body>
-</html>
-\`\`\`
-
-### نکات کد:
-- استفاده از ساختار استاندارد HTML5
-- رعایت جهت‌نما \`dir="rtl"\` برای زبان فارسی`;
-
-      if (userPrompt.includes('پایتون')) {
-        mockResponse = `این هم کد پایتون محاسبه فاکتوریل:
-
-\`\`\`python
-def factorial(n):
-    if n == 0 or n == 1:
-        return 1
-    return n * factorial(n - 1)
-
-# تست تابع
-number = 5
-print(f"فاکتوریل {number} برابر است با: {factorial(number)}")
-\`\`\`
-
-**توضیحات:** این تابع به صورت **بازگشتی (Recursive)** نوشته شده است.`;
+      const promptLower = userPrompt.toLowerCase();
+      if (promptLower.includes('سلام') || promptLower.includes('درود')) {
+        finalResponse = `سلام! وقتت بخیر. چطور می‌تونم کمکت کنم؟ پرامپت‌ها، کدها یا سوالاتت رو بنویس تا بررسی کنیم.`;
+      } else if (promptLower.includes('html') || promptLower.includes('طراحی')) {
+        finalResponse = `البته! این هم یک ساختار نمونه تمیز سند HTML5 برای کار شما:\n\n\`\`\`html\n<!DOCTYPE html>\n<html lang="fa" dir="rtl">\n<head>\n  <meta charset="UTF-8">\n  <title>استودیو طراحی</title>\n</head>\n<body>\n  <h1>به دنیای توسعه وب خوش آمدید</h1>\n</body>\n</html>\n\`\`\``;
+      } else if (promptLower.includes('پایتون') || promptLower.includes('python')) {
+        finalResponse = `برای پایتون، ساده‌ترین متد چاپ یا محاسبات به این شکل کدنویسی میشه:\n\n\`\`\`python\ndef greet_user(name):\n    print(f"سلام {name}، به محیط توسعه پایتون خوش آمدی!")\n\ngreet_user("امیر صالح")\n\`\`\``;
       }
 
-      currentChat.messages.push({ sender: 'bot', text: mockResponse });
+      currentChat.messages.push({ sender: 'bot', text: finalResponse });
       saveToStorage();
-      renderMessageItem(mockResponse, 'bot');
-    }, 1200);
+      renderMessageItem(finalResponse, 'bot');
+    }, 1000);
   }
 
   function scrollToBottom() {
@@ -535,7 +511,7 @@ print(f"فاکتوریل {number} برابر است با: {factorial(number)}")
   DOM.scrollToBottomBtn?.addEventListener('click', scrollToBottom);
 
   // ==========================================================================
-  // 12. رندر مارک‌داون و هایلایت سنتکس کد
+  // 12. رندر دقیق مارک‌داون و هایلایت بدون تداخل با المنت‌های UI
   // ==========================================================================
   function escapeHtml(str) {
     if (!str) return '';
@@ -584,52 +560,49 @@ print(f"فاکتوریل {number} برابر است با: {factorial(number)}")
 
     const codeBlocks = [];
 
-    // ۱. استخراج بلوک‌های کد سه تایی
+    // ۱. استخراج و امن‌سازی بلوک‌های کد
     let processed = text.replace(/```(\w*)\r?\n?([\s\S]*?)```/g, (match, lang, code) => {
       const index = codeBlocks.length;
       const language = lang.trim() || 'code';
       const highlightedCode = highlightSyntax(code.trim(), language);
 
-      const blockHtml = `
-        <div class="code-block-container" dir="ltr">
-          <div class="code-block-header">
-            <span class="code-lang"><i class="fa-solid fa-code"></i> ${escapeHtml(language)}</span>
-            <div class="code-actions">
-              <button type="button" class="code-btn" onclick="copyCodeSnippet(this)">
-                <i class="fa-regular fa-copy"></i> کپی
-              </button>
-              <button type="button" class="code-btn" onclick="downloadCodeSnippet(this)">
-                <i class="fa-solid fa-download"></i> دانلود
-              </button>
-            </div>
-          </div>
-          <pre><code>${highlightedCode}</code></pre>
-        </div>`;
+      // ساختار خام بلاک کامپوننت بدون متصل شدن به تگ‌های امنیتی فرار متن
+      const blockHtml = `__START_BLOCK__<div class="code-block-container" dir="ltr"><div class="code-block-header"><span class="code-lang"><i class="fa-solid fa-code"></i> ${escapeHtml(language)}</span><div class="code-actions"><button type="button" class="code-btn" onclick="copyCodeSnippet(this)"><i class="fa-regular fa-copy"></i> کپی</button><button type="button" class="code-btn" onclick="downloadCodeSnippet(this)"><i class="fa-solid fa-download"></i> دانلود</button></div></div><pre><code>${highlightedCode}</code></pre></div>__END_BLOCK__`;
 
       codeBlocks.push(blockHtml);
       return `___CODE_BLOCK_${index}___`;
     });
 
-    // ۲. امن‌سازی متن
+    // ۲. امن‌سازی بخش‌های متنی چت غیر از قالب‌های کد اصلی
     processed = escapeHtml(processed);
 
-    // ۳. کدهای درون‌خطی Inline Code
+    // ۳. کدهای درون‌خطی (Inline Code)
     processed = processed.replace(/`([^`]+)`/g, '<code class="inline-code" dir="ltr">$1</code>');
 
-    // ۴. تیترها
+    // ۴. تیترهای مارک‌داون
     processed = processed.replace(/^### (.*$)/gim, '<h3 class="md-h3">$1</h3>');
     processed = processed.replace(/^## (.*$)/gim, '<h2 class="md-h2">$1</h2>');
     processed = processed.replace(/^# (.*$)/gim, '<h1 class="md-h1">$1</h1>');
 
-    // ۵. فرمت متن (بولد و ایتالیک)
+    // ۵. قالب بندی متون معمولی
     processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
     processed = processed.replace(/\n/g, '<br>');
 
-    // ۶. جایگذاری مجدد بلوک‌های کد
+    // ۶. جاگذاری تمیز پکیج‌های کد اچ تی ام ال بدون آسیب به دام
     codeBlocks.forEach((block, index) => {
-      processed = processed.replace(`___CODE_BLOCK_${index}___`, block);
+      const cleanBlock = block.replace('__START_BLOCK__', '').replace('__END_BLOCK__', '');
+      processed = processed.replace(`___CODE_BLOCK_${index}___`, cleanBlock);
     });
+
+    // حذف کدهای فرار اعمال شده اشتباه روی تگ‌های ساختاری ریپلیس شده
+    processed = processed.replace(/&lt;span class=&quot;code-comment&quot;&gt;/g, '<span class="code-comment">')
+                         .replace(/&lt;\/span&gt;/g, '</span>')
+                         .replace(/&lt;span class=&quot;code-tag&quot;&gt;/g, '<span class="code-tag">')
+                         .replace(/&lt;span class=&quot;code-attr&quot;&gt;/g, '<span class="code-attr">')
+                         .replace(/&lt;span class=&quot;code-string&quot;&gt;/g, '<span class="code-string">')
+                         .replace(/&lt;span class=&quot;code-keyword&quot;&gt;/g, '<span class="code-keyword">')
+                         .replace(/&lt;span class=&quot;code-number&quot;&gt;/g, '<span class="code-number">');
 
     return processed;
   }
@@ -655,7 +628,7 @@ print(f"فاکتوریل {number} برابر است با: {factorial(number)}")
     const code = container.querySelector('code')?.innerText || '';
     const lang = container.querySelector('.code-lang')?.innerText.trim().toLowerCase() || 'txt';
     
-    const extMap = { html: 'html', css: 'css', js: 'js', python: 'py', py: 'py' };
+    const extMap = { html: 'html', css: 'css', js: 'js', javascript: 'js', python: 'py', py: 'py' };
     const ext = extMap[lang] || 'txt';
 
     const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
