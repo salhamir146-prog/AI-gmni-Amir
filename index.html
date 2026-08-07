@@ -1,490 +1,242 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>میز کار هوش مصنوعی | فرانت‌اند چت</title>
-  <!-- فونت وزیرمتن برای زیبایی محیط کاربری فارسی -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/misc/font-face.css">
-  <!-- آیکون‌های بوت‌استرپ -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  
-  <style>
-    :root {
-      --bg-dark: #131314;
-      --sidebar-bg: #1e1f20;
-      --card-bg: #2b2c2e;
-      --text-main: #e3e3e3;
-      --text-muted: #aaaaaa;
-      --accent-color: #75aadb;
-      --border-color: #3c4043;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Vazirmatn', sans-serif;
-    }
-
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* --- سایدبار سمت راست --- */
-    .sidebar {
-      width: 280px;
-      background-color: var(--sidebar-bg);
-      border-left: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-      padding: 15px;
-      transition: all 0.3s ease;
-    }
-
-    .new-chat-btn {
-      background: #3c4043;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 24px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-      margin-bottom: 20px;
-      transition: background 0.2s;
-    }
-
-    .new-chat-btn:hover {
-      background: #4f5357;
-    }
-
-    .chat-list {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .chat-item {
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 13px;
-      color: var(--text-main);
-      transition: background 0.2s;
-    }
-
-    .chat-item:hover, .chat-item.active {
-      background-color: #333537;
-    }
-
-    .chat-item-title {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-    }
-
-    .delete-chat-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 2px;
-    }
-
-    .delete-chat-btn:hover {
-      color: #ff6b6b;
-    }
-
-    .sidebar-footer {
-      border-top: 1px solid var(--border-color);
-      padding-top: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .footer-btn {
-      background: none;
-      border: none;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 6px;
-      font-size: 14px;
-      text-align: right;
-    }
-
-    .footer-btn:hover {
-      background: #333537;
-    }
-
-    /* --- بخش اصلی چت --- */
-    .main-chat {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-
-    .chat-header {
-      height: 60px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      background-color: var(--bg-dark);
-    }
-
-    .header-title {
-      font-size: 16px;
-      font-weight: 500;
-    }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .message {
-      max-width: 85%;
-      display: flex;
-      gap: 12px;
-    }
-
-    .message.user {
-      align-self: flex-end;
-      flex-direction: row-reverse;
-    }
-
-    .message.bot {
-      align-self: flex-start;
-    }
-
-    .avatar {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      background: #444;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    .message.user .avatar {
-      background: #515c6b;
-    }
-
-    .message.bot .avatar {
-      background: #3f607a;
-    }
-
-    .message-content {
-      padding: 12px 16px;
-      border-radius: 12px;
-      line-height: 1.6;
-      font-size: 14px;
-      white-space: pre-line;
-    }
-
-    .message.user .message-content {
-      background-color: #2e3b4e;
-      border-top-left-radius: 2px;
-    }
-
-    .message.bot .message-content {
-      background-color: #202124;
-      border-top-right-radius: 2px;
-      border: 1px solid var(--border-color);
-    }
-
-    /* استایل نمایش تکه کدها */
-    pre {
-      background-color: #0d0e10;
-      padding: 12px;
-      border-radius: 6px;
-      overflow-x: auto;
-      direction: ltr;
-      text-align: left;
-      margin: 10px 0;
-      border: 1px solid #222;
-    }
-
-    code {
-      font-family: monospace;
-      color: #e5c07b;
-    }
-
-    /* --- باکس ورودی پیام --- */
-    .input-area {
-      padding: 15px 20px;
-      background-color: var(--bg-dark);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .input-wrapper {
-      width: 100%;
-      max-width: 760px;
-      background-color: #202124;
-      border: 1px solid var(--border-color);
-      border-radius: 28px;
-      display: flex;
-      align-items: center;
-      padding: 6px 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-
-    .input-wrapper:focus-within {
-      border-color: #555;
-      background-color: #28292c;
-    }
-
-    .chat-input {
-      flex: 1;
-      background: none;
-      border: none;
-      color: var(--text-main);
-      padding: 10px;
-      font-size: 15px;
-      outline: none;
-      resize: none;
-      height: 44px;
-      max-height: 150px;
-    }
-
-    .send-btn {
-      background: none;
-      border: none;
-      color: var(--accent-color);
-      cursor: pointer;
-      font-size: 20px;
-      padding: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.1s;
-    }
-
-    .send-btn:hover {
-      transform: scale(1.1);
-    }
-
-    .disclaimer {
-      font-size: 11px;
-      color: var(--text-muted);
-      text-align: center;
-    }
-
-    /* --- مدال تنظیمات پیشرفته --- */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.6);
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .modal-content {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      padding: 20px;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 10px;
-      margin-bottom: 20px;
-    }
-
-    .close-modal {
-      background: none;
-      border: none;
-      color: var(--text-main);
-      font-size: 20px;
-      cursor: pointer;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .form-group label {
-      font-size: 13px;
-      color: var(--text-main);
-    }
-
-    .form-control {
-      background-color: #1e1f20;
-      border: 1px solid var(--border-color);
-      color: white;
-      padding: 10px;
-      border-radius: 6px;
-      outline: none;
-      font-size: 14px;
-    }
-
-    .btn-save {
-      background-color: #3f607a;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      align-self: flex-end;
-      margin-top: 10px;
-    }
-
-    .btn-save:hover {
-      background-color: #4f7494;
-    }
-
-    /* انیمیشن لودینگ چت */
-    .typing-indicator {
-      display: flex;
-      gap: 4px;
-      padding: 4px 8px;
-      align-items: center;
-    }
-
-    .typing-indicator span {
-      width: 6px;
-      height: 6px;
-      background-color: var(--text-muted);
-      border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out both;
-    }
-
-    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1.0); }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatGPT Classic — Gemini Edition</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 <body>
+<style>
+/* انیمیشن‌های جدید برای تولید تصویر مانند ChatGPT */
+.image-generating-bubble {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1));
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  animation: imagePulse 1.2s ease-in-out infinite;
+}
+.image-generating-bubble i {
+  font-size: 24px;
+  color: var(--accent-blue);
+  animation: spinSlow 1.6s linear infinite;
+}
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes imagePulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; background: rgba(37, 99, 235, 0.15); }
+}
+.gen-image {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  margin: 8px 0;
+  max-width: 100%;
+}
+</style>
+<div class="app-container">
 
-  <!-- سایدبار دسترسی‌ها و تاریخچه -->
-  <aside class="sidebar">
-    <button class="new-chat-btn" id="newChatBtn">
-      <i class="bi bi-plus-lg"></i>
-      <span>گفتگوی جدید</span>
-    </button>
-    
-    <div class="chat-list" id="chatListContainer">
-      <!-- آیتم‌های تاریخچه به صورت پویا توسط جاوااسکریپت اینجا درج می‌شوند -->
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top-header">
+      <div class="brand-icon">
+        <svg viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+          <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 18.306 1.3a10.079 10.079 0 0 0-9.298 6.048 9.967 9.967 0 0 0-6.68 5.1 10.076 10.076 0 0 0 1.558 11.758 9.96 9.96 0 0 0 .855 8.185 10.078 10.078 0 0 0 10.855 4.835 9.965 9.965 0 0 0 7.516 2.55 10.079 10.079 0 0 0 9.298-6.049 9.966 9.966 0 0 0 6.679-5.1 10.077 10.077 0 0 0-1.557-11.757L37.532 16.87z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">Classic</span>
+      </div>
+      <div class="top-header-actions">
+        <button class="icon-btn" id="saveChatBtn" title="ذخیره چت جاری"><i class="fa-regular fa-floppy-disk"></i></button>
+        <button class="icon-btn" id="themeToggleBtn" title="تغییر پوسته"><i class="fa-solid fa-circle-half-stroke"></i></button>
+        <button class="icon-btn" id="closeSidebarBtn" title="بستن سایدبار"><i class="fa-solid fa-xmark"></i></button>
+      </div>
     </div>
 
-    <div class="sidebar-footer">
-      <button class="footer-btn" id="backupBtn">
-        <i class="bi bi-cloud-arrow-up"></i>
-        <span>پشتیبان‌گیری و بازیابی</span>
+    <div class="nav-links">
+      <button class="nav-item new-chat-nav" id="newChatBtn">
+        <i class="fa-regular fa-pen-to-square"></i><span>گفتگوی جدید</span>
       </button>
-      <button class="footer-btn" id="settingsBtn">
-        <i class="bi bi-gear"></i>
-        <span>تنظیمات پیشرفته</span>
-      </button>
+      <a href="#" class="nav-item" id="openSettingsLink">
+        <i class="fa-solid fa-sliders"></i><span>تنظیمات و مدل‌ها</span>
+      </a>
+    </div>
+
+    <div class="recents-section">
+      <div class="recents-title">چت‌های ذخیره‌شده</div>
+      <div class="chat-history-list" id="chatHistoryList">
+        <div class="history-empty" id="historyEmpty">هنوز چتی ذخیره نشده</div>
+      </div>
+    </div>
+
+    <div class="user-profile-footer">
+      <div class="user-info">
+        <div class="avatar">AS</div>
+        <div class="user-details">
+          <div class="user-name">Amir salh</div>
+          <div class="user-plan" id="connStatus"><span class="dot"></span> بررسی اتصال...</div>
+        </div>
+      </div>
     </div>
   </aside>
 
-  <!-- بخش اصلی چت -->
-  <main class="main-chat">
-    <header class="chat-header">
-      <div class="header-title" id="currentChatTitle">گفتگوی جدید</div>
-      <div style="font-size: 12px; color: var(--text-muted);" id="activeModelBadge">مدل: Gemini 3.5 Flash</div>
+  <!-- ============ MAIN ============ -->
+  <main class="chat-main">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button class="sidebar-toggle-btn" id="openSidebarBtn"><i class="fa-solid fa-bars"></i></button>
+        <div class="model-dropdown-badge" id="modelDropdownBadge">
+          <span class="model-cat-icon" id="modelCatIcon"><i class="fa-solid fa-comment-dots"></i></span>
+          <span id="currentModelName">در حال بارگذاری...</span>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <button class="icon-btn-circle" id="settingsGearBtn" title="تنظیمات"><i class="fa-solid fa-gear"></i></button>
+      </div>
     </header>
 
-    <div class="chat-messages" id="chatMessagesContainer">
-      <!-- پیام‌ها اینجا رندر می‌شوند -->
+    <div class="chat-content" id="chatContent">
+      <div class="welcome-container" id="welcomeContainer">
+        <div class="welcome-badge"><i class="fa-solid fa-sparkles"></i></div>
+        <h1 class="welcome-title">چطور می‌توانم کمکتان کنم؟</h1>
+        <p class="welcome-subtitle">هر مدل Gemini را از تنظیمات انتخاب کنید و شروع کنید</p>
+        <div class="suggestion-chips" id="suggestionChips"></div>
+      </div>
+      <div class="messages-list" id="messagesList" style="display:none;"></div>
     </div>
 
-    <div class="input-area">
-      <div class="input-wrapper">
-        <textarea class="chat-input" id="chatInput" placeholder="پیام خود را بنویسید..." rows="1"></textarea>
-        <button class="send-btn" id="sendBtn">
-          <i class="bi bi-send-fill"></i>
-        </button>
+    <div class="input-area-wrapper">
+      <div class="model-context-bar" id="modelContextBar" style="display:none;"></div>
+      
+      <!-- نمایش نام فایل -->
+      <div class="file-name-display" id="fileNameDisplay" style="display:none;"></div>
+      
+      <div class="floating-input-box" id="floatingInputBox">
+        <div class="input-left-actions">
+          <button class="input-action-btn upload-btn" id="fileUploadBtn" title="آپلود فایل">
+            <i class="fa-solid fa-paperclip"></i>
+          </button>
+          <span class="file-badge" id="fileBadge" style="display:none;">1</span>
+        </div>
+        <input type="file" id="fileInput" accept="image/*,.pdf,.txt,.doc,.docx" style="display:none;">
+        <button class="input-action-btn" id="stopBtn" title="توقف" style="display:none;"><i class="fa-solid fa-stop"></i></button>
+        <textarea id="promptInput" placeholder="هر چه می‌خواهید بپرسید..." rows="1"></textarea>
+        <div class="input-right-actions">
+          <button class="send-action-btn" id="sendBtn" disabled><i class="fa-solid fa-arrow-up"></i></button>
+        </div>
       </div>
-      <!-- پاورقی هماهنگ‌شده با درخواست کاربر -->
-      <div class="disclaimer">
-        Gemini ممکن است اطلاعات نادرستی ارائه دهد، پاسخ‌ها را بررسی کنید.
-      </div>
+      <div class="disclaimer-text">Gemini ممکن است اطلاعات نادرستی ارائه دهد. پاسخ‌ها را بررسی کنید.</div>
     </div>
   </main>
+</div>
 
-  <!-- مدال تنظیمات پیشرفته و انتخاب مدل‌های جدید -->
-  <div class="modal" id="settingsModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>تنظیمات پیشرفته سیستم</h3>
-        <button class="close-modal" id="closeModalBtn">&times;</button>
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="settings-modal-card">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-sliders"></i> تنظیمات</h3>
+      <button class="close-modal-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="model">مدل</button>
+      <button class="modal-tab" data-tab="params">پارامترها</button>
+      <button class="modal-tab" data-tab="system">سیستم</button>
+      <button class="modal-tab" data-tab="memory">حافظه</button>
+      <button class="modal-tab" data-tab="about">درباره کلید</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- TAB: MODEL -->
+      <div class="tab-panel active" data-panel="model">
+        <div class="form-group">
+          <label>دسته‌بندی</label>
+          <div class="category-pills" id="categoryPills"></div>
+        </div>
+        <div class="form-group">
+          <label for="modelSelect">انتخاب مدل</label>
+          <select id="modelSelect" class="form-control"></select>
+          <div class="model-desc" id="modelDescBox"></div>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="modelSelect">انتخاب مدل پردازش هوش مصنوعی:</label>
-            <select id="modelSelect" class="form-control">
-  <optgroup label="خانواده Gemini">
-    <option value="gemini-3.6-flash">فلش جمینی ۳.۶</option>
-    <option value="gemini-3.5-flash" selected>فلش جمینی ۳.۵</option>
-    <option value="gemini-3.5-flash-lite">فلش جمینی ۳.۵ لایت</option>
-    <option value="gemini-3.1-flash-lite">فلش جمینی ۳.۱ لایت</option>
-    <option value="gemini-4-31b-it">جمینای ۴ ۳۱B IT</option>
-    <option value="gemini-4-26b-moe-it">جمینای ۴ ۲۶B MOE IT</option>
-  </optgroup>
-  <optgroup label="مدل‌های Groq و متنی">
-    <option value="llama-3.3-70b">(Groq) با ۳.۳ ۷۰B تماس بگیرید</option>
-    <option value="llama-3.1-8b">لاما ۳.۱ ۸ب</option>
-  </optgroup>
-  <optgroup label="دیپ‌سیک">
-    <option value="deepseek-r1">دیپ‌سیک R1</option>
-  </optgroup>
-</select>
+
+      <!-- TAB: PARAMS -->
+      <div class="tab-panel" data-panel="params">
+        <div id="dynamicParams"></div>
       </div>
-      <div class="form-group">
-        <label for="systemPromptInput">پرامپت سیستمی (رفتار پیش‌فرض):</label>
-        <textarea id="systemPromptInput" class="form-control" rows="3" placeholder=" "></textarea>
+
+      <!-- TAB: SYSTEM -->
+      <div class="tab-panel" data-panel="system">
+        <div class="form-group">
+          <label for="systemInstruction">دستورالعمل سیستم (System Prompt)</label>
+          <textarea id="systemInstruction" class="form-control" rows="4" placeholder="مثلاً: پاسخ‌ها را کوتاه و کاربردی ارائه بده..."></textarea>
+        </div>
+        <div class="form-group row-group">
+          <label class="switch-label">
+            <span>حالت شب خودکار برای کد</span>
+            <label class="switch"><input type="checkbox" id="codeThemeToggle" checked><span class="slider"></span></label>
+          </label>
+        </div>
       </div>
-      <button class="btn-save" id="saveSettingsBtn">ذخیره تنظیمات</button>
+
+      <!-- TAB: MEMORY -->
+      <div class="tab-panel" data-panel="memory">
+        <div class="form-group row-group">
+          <label class="switch-label">
+            <span>فعال‌سازی حافظه بلندمدت</span>
+            <label class="switch"><input type="checkbox" id="memoryEnabledToggle" checked><span class="slider"></span></label>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>نکات ذخیره‌شده درباره شما</label>
+          <textarea id="memoryBox" class="form-control" rows="8" readonly placeholder="هنوز چیزی ذخیره نشده..."></textarea>
+        </div>
+        <div class="cloudflare-note">
+          <strong><i class="fa-solid fa-database"></i> ذخیره‌سازی</strong>
+          <p>این حافظه در Cloudflare KV ذخیره می‌شود و بین همه گفتگوهای این مرورگر مشترک است.</p>
+        </div>
+        <button class="btn btn-ghost" id="clearMemoryBtn" style="margin-top:10px;color:#dc2626;border-color:#fca5a5;">
+          <i class="fa-solid fa-trash"></i> حذف حافظه
+        </button>
+      </div>
+
+      <!-- TAB: ABOUT -->
+      <div class="tab-panel" data-panel="about">
+        <div class="cloudflare-note">
+          <strong><i class="fa-solid fa-shield-halved"></i> نکته امنیتی Cloudflare</strong>
+          <p>کلید Gemini API شما در <code>Environment Variables</code> پروژه Cloudflare Pages با نام <code>GEMINI_API_KEY</code> ذخیره می‌شود.</p>
+        </div>
+        <div class="cloudflare-note warn">
+          <strong><i class="fa-solid fa-triangle-exclamation"></i> محدودیت مدل‌ها</strong>
+          <p>مدل‌های متنی، تصویری (Gemini Image و Imagen) و تبدیل‌متن‌به‌گفتار پشتیبانی می‌شوند.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="testConnBtn"><i class="fa-solid fa-plug-circle-check"></i> تست اتصال</button>
+      <button class="btn btn-primary" id="saveSettingsBtn">ذخیره تغییرات</button>
     </div>
   </div>
+</div>
 
-  <script src="app.js"></script>
+<!-- Toast container -->
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- تغییر اصلی اینجاست: به app.js یک پارامتر تصادفی اضافه کردیم تا مرورگر فایل جدید را دانلود کند -->
+<script src="app.js?v=2"></script>
 </body>
 </html>
