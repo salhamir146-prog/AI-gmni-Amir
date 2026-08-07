@@ -388,3 +388,31 @@ input:checked + .slider::before { transform: translateX(-18px); }
   .message-col { max-width: 92%; }
   .settings-modal-card { padding: 16px; }
 }
+/* اصلاح دکمه کپی پایین پاسخ */
+.msg-actions {
+  display: flex !important;
+  justify-content: flex-start;
+  width: auto !important;
+  margin-top: 6px;
+}
+
+.copy-msg-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  width: auto !important;          /* جلوگیری از کشیده شدن دکمه */
+  max-width: fit-content !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+  background-color: transparent !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-msg-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: #111827 !important;
+}
