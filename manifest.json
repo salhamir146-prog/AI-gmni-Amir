@@ -1,5 +1,5 @@
 {
-  "name": "ChatGPT Classic — Gemini",
+  "name": "Gemini Chat",
   "short_name": "Gemini Chat",
   "description": "چت‌بات حرفه‌ای با پشتیبانی از مدل‌های Gemini",
   "start_url": "/",
@@ -7,6 +7,9 @@
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
+  "categories": ["productivity", "utilities"],
+  "lang": "fa",
+  "dir": "rtl",
   "icons": [
     {
       "src": "/icons/icon-72.png",
@@ -55,6 +58,24 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "platform": "android",
+      "label": "Chat Screen"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "short_name": "New Chat",
+      "description": "Start a new chat",
+      "url": "/?new",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
     }
   ]
 }
