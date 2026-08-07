@@ -1,242 +1,159 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT Classic — Gemini Edition</title>
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini AI Chat</title>
+  
+  <!-- فونت‌های استاندارد فارسی و کد نویسی -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- آیکون‌های FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- استایل اصلی -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<style>
-/* انیمیشن‌های جدید برای تولید تصویر مانند ChatGPT */
-.image-generating-bubble {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1));
-  padding: 16px 20px;
-  border-radius: 16px;
-  border: 1px solid var(--border-color);
-  animation: imagePulse 1.2s ease-in-out infinite;
-}
-.image-generating-bubble i {
-  font-size: 24px;
-  color: var(--accent-blue);
-  animation: spinSlow 1.6s linear infinite;
-}
-@keyframes spinSlow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-@keyframes imagePulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; background: rgba(37, 99, 235, 0.15); }
-}
-.gen-image {
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  margin: 8px 0;
-  max-width: 100%;
-}
-</style>
-<div class="app-container">
 
-  <!-- ============ SIDEBAR ============ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-top-header">
-      <div class="brand-icon">
-        <svg viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-          <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 18.306 1.3a10.079 10.079 0 0 0-9.298 6.048 9.967 9.967 0 0 0-6.68 5.1 10.076 10.076 0 0 0 1.558 11.758 9.96 9.96 0 0 0 .855 8.185 10.078 10.078 0 0 0 10.855 4.835 9.965 9.965 0 0 0 7.516 2.55 10.079 10.079 0 0 0 9.298-6.049 9.966 9.966 0 0 0 6.679-5.1 10.077 10.077 0 0 0-1.557-11.757L37.532 16.87z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span class="brand-name">Classic</span>
-      </div>
-      <div class="top-header-actions">
-        <button class="icon-btn" id="saveChatBtn" title="ذخیره چت جاری"><i class="fa-regular fa-floppy-disk"></i></button>
-        <button class="icon-btn" id="themeToggleBtn" title="تغییر پوسته"><i class="fa-solid fa-circle-half-stroke"></i></button>
-        <button class="icon-btn" id="closeSidebarBtn" title="بستن سایدبار"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-    </div>
-
-    <div class="nav-links">
-      <button class="nav-item new-chat-nav" id="newChatBtn">
-        <i class="fa-regular fa-pen-to-square"></i><span>گفتگوی جدید</span>
+  <!-- سایدبار تاریخچه و منو -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <button id="newChatBtn" class="btn-new-chat">
+        <i class="fa-solid fa-plus"></i>
+        <span>گفتگوی جدید</span>
       </button>
-      <a href="#" class="nav-item" id="openSettingsLink">
-        <i class="fa-solid fa-sliders"></i><span>تنظیمات و مدل‌ها</span>
-      </a>
+      <button id="closeSidebarBtn" class="icon-btn mobile-only" title="بستن منو">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
-    <div class="recents-section">
-      <div class="recents-title">چت‌های ذخیره‌شده</div>
-      <div class="chat-history-list" id="chatHistoryList">
-        <div class="history-empty" id="historyEmpty">هنوز چتی ذخیره نشده</div>
-      </div>
+    <div id="chatHistoryList" class="chat-history-list">
+      <div class="history-section-title">گفتگوهای اخیر</div>
+      <div id="historyEmpty" class="history-empty">هیچ گفتگویی ذخیره نشده است</div>
     </div>
 
-    <div class="user-profile-footer">
-      <div class="user-info">
-        <div class="avatar">AS</div>
-        <div class="user-details">
-          <div class="user-name">Amir salh</div>
-          <div class="user-plan" id="connStatus"><span class="dot"></span> بررسی اتصال...</div>
-        </div>
-      </div>
+    <div class="sidebar-footer">
+      <button id="openSettingsBtn" class="sidebar-footer-btn">
+        <i class="fa-solid fa-gear"></i>
+        <span>تنظیمات و مدل‌ها</span>
+      </button>
     </div>
   </aside>
 
-  <!-- ============ MAIN ============ -->
-  <main class="chat-main">
+  <!-- بخش اصلی برنامه -->
+  <main id="mainApp" class="main-app">
+    
+    <!-- هدر بالای صفحه -->
     <header class="top-bar">
-      <div class="top-bar-left">
-        <button class="sidebar-toggle-btn" id="openSidebarBtn"><i class="fa-solid fa-bars"></i></button>
-        <div class="model-dropdown-badge" id="modelDropdownBadge">
-          <span class="model-cat-icon" id="modelCatIcon"><i class="fa-solid fa-comment-dots"></i></span>
-          <span id="currentModelName">در حال بارگذاری...</span>
-          <i class="fa-solid fa-chevron-down chev"></i>
+      <div class="top-bar-right">
+        <button id="openSidebarBtn" class="icon-btn" title="باز کردن سایدبار">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div id="modelSelectorDropdown" class="model-badge" title="تغییر مدل فعلی">
+          <span class="model-icon"><i class="fa-solid fa-bolt"></i></span>
+          <span id="currentModelName">Gemini 1.5 Flash</span>
+          <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
         </div>
       </div>
-      <div class="top-bar-right">
-        <button class="icon-btn-circle" id="settingsGearBtn" title="تنظیمات"><i class="fa-solid fa-gear"></i></button>
+
+      <div class="top-bar-left">
+        <button id="themeToggleBtn" class="icon-btn" title="تغییر حالت شب/روز">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button id="settingsGearBtn" class="icon-btn" title="تنظیمات">
+          <i class="fa-solid fa-sliders"></i>
+        </button>
       </div>
     </header>
 
-    <div class="chat-content" id="chatContent">
-      <div class="welcome-container" id="welcomeContainer">
-        <div class="welcome-badge"><i class="fa-solid fa-sparkles"></i></div>
+    <!-- منطقه نمایش پیام‌ها و خوش‌آمدگویی -->
+    <div id="chatContent" class="chat-content">
+      
+      <!-- حالت اولیه (خوش‌آمدگویی) -->
+      <div id="welcomeContainer" class="welcome-container">
+        <div class="welcome-icon">
+          <i class="fa-solid fa-sparkles"></i>
+        </div>
         <h1 class="welcome-title">چطور می‌توانم کمکتان کنم؟</h1>
-        <p class="welcome-subtitle">هر مدل Gemini را از تنظیمات انتخاب کنید و شروع کنید</p>
-        <div class="suggestion-chips" id="suggestionChips"></div>
       </div>
-      <div class="messages-list" id="messagesList" style="display:none;"></div>
+
+      <!-- لیست پیام‌های ارسال و دریافت شده -->
+      <div id="messagesList" class="messages-list" style="display: none;"></div>
+
     </div>
 
-    <div class="input-area-wrapper">
-      <div class="model-context-bar" id="modelContextBar" style="display:none;"></div>
-      
-      <!-- نمایش نام فایل -->
-      <div class="file-name-display" id="fileNameDisplay" style="display:none;"></div>
-      
-      <div class="floating-input-box" id="floatingInputBox">
-        <div class="input-left-actions">
-          <button class="input-action-btn upload-btn" id="fileUploadBtn" title="آپلود فایل">
-            <i class="fa-solid fa-paperclip"></i>
-          </button>
-          <span class="file-badge" id="fileBadge" style="display:none;">1</span>
-        </div>
-        <input type="file" id="fileInput" accept="image/*,.pdf,.txt,.doc,.docx" style="display:none;">
-        <button class="input-action-btn" id="stopBtn" title="توقف" style="display:none;"><i class="fa-solid fa-stop"></i></button>
-        <textarea id="promptInput" placeholder="هر چه می‌خواهید بپرسید..." rows="1"></textarea>
-        <div class="input-right-actions">
-          <button class="send-action-btn" id="sendBtn" disabled><i class="fa-solid fa-arrow-up"></i></button>
+    <!-- فرم ورودی پیام کاربر -->
+    <div class="input-wrapper">
+      <div class="input-box">
+        <textarea id="promptInput" rows="1" placeholder="هر چه می‌خواهید بپرسید..." autofocus></textarea>
+        
+        <div class="input-actions">
+          <div class="input-actions-left">
+            <button id="fileUploadBtn" class="icon-btn action-btn" title="آپلود فایل یا تصویر">
+              <i class="fa-solid fa-paperclip"></i>
+            </button>
+            <input type="file" id="fileInput" hidden multiple accept="image/*, .pdf, .txt, .js, .html, .css">
+          </div>
+          
+          <div class="input-actions-right">
+            <button id="sendBtn" class="send-btn" title="ارسال پیام" disabled>
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+          </div>
         </div>
       </div>
-      <div class="disclaimer-text">Gemini ممکن است اطلاعات نادرستی ارائه دهد. پاسخ‌ها را بررسی کنید.</div>
+      
+      <div class="disclaimer-text">
+        Gemini ممکن است اطلاعات نادرستی ارائه دهد، پاسخ‌ها را بررسی کنید.
+      </div>
     </div>
+
   </main>
-</div>
 
-<!-- ============ SETTINGS MODAL ============ -->
-<div class="modal-backdrop" id="settingsModal">
-  <div class="settings-modal-card">
-    <div class="modal-header">
-      <h3><i class="fa-solid fa-sliders"></i> تنظیمات</h3>
-      <button class="close-modal-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
-    </div>
+  <!-- مدال تنظیمات عمومی و مدل -->
+  <div id="settingsModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-sliders"></i> تنظیمات سیستم</h3>
+        <button id="closeModalBtn" class="icon-btn" title="بستن"><i class="fa-solid fa-xmark"></i></button>
+      </div>
 
-    <div class="modal-tabs">
-      <button class="modal-tab active" data-tab="model">مدل</button>
-      <button class="modal-tab" data-tab="params">پارامترها</button>
-      <button class="modal-tab" data-tab="system">سیستم</button>
-      <button class="modal-tab" data-tab="memory">حافظه</button>
-      <button class="modal-tab" data-tab="about">درباره کلید</button>
-    </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="model">انتخاب مدل</button>
+        <button class="modal-tab" data-tab="system">دستورالعمل سیستم</button>
+      </div>
 
-    <div class="modal-body">
-
-      <!-- TAB: MODEL -->
-      <div class="tab-panel active" data-panel="model">
-        <div class="form-group">
-          <label>دسته‌بندی</label>
-          <div class="category-pills" id="categoryPills"></div>
+      <div class="modal-body">
+        <!-- تب تنظیمات مدل -->
+        <div class="tab-panel active" data-panel="model">
+          <div class="form-group">
+            <label class="input-label" for="modelSelect">مدل هوش مصنوعی</label>
+            <select id="modelSelect" class="select-input">
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash (سریع و بهینه)</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (پیشرفته و دقیق)</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="modelSelect">انتخاب مدل</label>
-          <select id="modelSelect" class="form-control"></select>
-          <div class="model-desc" id="modelDescBox"></div>
+
+        <!-- تب دستورالعمل سیستم -->
+        <div class="tab-panel" data-panel="system">
+          <div class="form-group">
+            <label class="input-label" for="systemInstruction">دستورالعمل اختصاصی (System Prompt)</label>
+            <textarea id="systemInstruction" class="textarea-input" placeholder="مثلاً: همواره پاسخ‌ها را کاملاً خلاصه و به زبان فارسی رسمی ارائه بده..."></textarea>
+          </div>
         </div>
       </div>
 
-      <!-- TAB: PARAMS -->
-      <div class="tab-panel" data-panel="params">
-        <div id="dynamicParams"></div>
+      <div class="modal-footer">
+        <button id="saveSettingsBtn" class="btn-primary">ذخیره تغییرات</button>
       </div>
-
-      <!-- TAB: SYSTEM -->
-      <div class="tab-panel" data-panel="system">
-        <div class="form-group">
-          <label for="systemInstruction">دستورالعمل سیستم (System Prompt)</label>
-          <textarea id="systemInstruction" class="form-control" rows="4" placeholder="مثلاً: پاسخ‌ها را کوتاه و کاربردی ارائه بده..."></textarea>
-        </div>
-        <div class="form-group row-group">
-          <label class="switch-label">
-            <span>حالت شب خودکار برای کد</span>
-            <label class="switch"><input type="checkbox" id="codeThemeToggle" checked><span class="slider"></span></label>
-          </label>
-        </div>
-      </div>
-
-      <!-- TAB: MEMORY -->
-      <div class="tab-panel" data-panel="memory">
-        <div class="form-group row-group">
-          <label class="switch-label">
-            <span>فعال‌سازی حافظه بلندمدت</span>
-            <label class="switch"><input type="checkbox" id="memoryEnabledToggle" checked><span class="slider"></span></label>
-          </label>
-        </div>
-        <div class="form-group">
-          <label>نکات ذخیره‌شده درباره شما</label>
-          <textarea id="memoryBox" class="form-control" rows="8" readonly placeholder="هنوز چیزی ذخیره نشده..."></textarea>
-        </div>
-        <div class="cloudflare-note">
-          <strong><i class="fa-solid fa-database"></i> ذخیره‌سازی</strong>
-          <p>این حافظه در Cloudflare KV ذخیره می‌شود و بین همه گفتگوهای این مرورگر مشترک است.</p>
-        </div>
-        <button class="btn btn-ghost" id="clearMemoryBtn" style="margin-top:10px;color:#dc2626;border-color:#fca5a5;">
-          <i class="fa-solid fa-trash"></i> حذف حافظه
-        </button>
-      </div>
-
-      <!-- TAB: ABOUT -->
-      <div class="tab-panel" data-panel="about">
-        <div class="cloudflare-note">
-          <strong><i class="fa-solid fa-shield-halved"></i> نکته امنیتی Cloudflare</strong>
-          <p>کلید Gemini API شما در <code>Environment Variables</code> پروژه Cloudflare Pages با نام <code>GEMINI_API_KEY</code> ذخیره می‌شود.</p>
-        </div>
-        <div class="cloudflare-note warn">
-          <strong><i class="fa-solid fa-triangle-exclamation"></i> محدودیت مدل‌ها</strong>
-          <p>مدل‌های متنی، تصویری (Gemini Image و Imagen) و تبدیل‌متن‌به‌گفتار پشتیبانی می‌شوند.</p>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="testConnBtn"><i class="fa-solid fa-plug-circle-check"></i> تست اتصال</button>
-      <button class="btn btn-primary" id="saveSettingsBtn">ذخیره تغییرات</button>
     </div>
   </div>
-</div>
 
-<!-- Toast container -->
-<div class="toast-stack" id="toastStack"></div>
-
-<!-- تغییر اصلی اینجاست: به app.js یک پارامتر تصادفی اضافه کردیم تا مرورگر فایل جدید را دانلود کند -->
-<script src="app.js?v=2"></script>
+  <!-- اسکریپت اصلی -->
+  <script src="app.js"></script>
 </body>
 </html>
