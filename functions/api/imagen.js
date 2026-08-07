@@ -1,14 +1,14 @@
 // Cloudflare Pages Function — /api/imagen
-// Uses dedicated IMAGEN_API_KEY and supports imagen-3.0-generate-001/002
+// اصلاح‌شده برای تطابق با ساختار پاسخ Imagen
 
 export async function onRequestPost(context) {
   try {
     const { request, env } = context;
     const body = await request.json();
 
-    const apiKey = env.IMAGEN_API_KEY;
+    const apiKey = env.IMAGEN_API_KEY || env.GEMINI_API_KEY;
     if (!apiKey) {
-      return json({ error: 'کلید اختصاصی تولید تصویر (IMAGEN_API_KEY) تعریف نشده است.' }, 500);
+      return json({ error: 'کلید API تولید تصویر تعریف نشده است.' }, 500);
     }
 
     const model = body.model || 'imagen-3.0-generate-001';
@@ -32,6 +32,13 @@ export async function onRequestPost(context) {
     if (!response.ok) {
       return json({ error: data.error || { message: `خطای Imagen API (کد ${response.status})` } }, response.status);
     }
+
+    // ✅ استخراج تصاویر از ساختار predictions
+    if (data.predictions && data.predictions.length > 0) {
+      const images = data.predictions.map(p => p.bytesBase64Encoded).filter(Boolean);
+      return json({ images }, 200);
+    }
+
     return json(data, 200);
   } catch (err) {
     return json({ error: err.message }, 500);
