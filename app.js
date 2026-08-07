@@ -28,6 +28,9 @@ const dom = {
   backupBtn: document.getElementById('backupBtn')
 };
 
+// تنظیم آدرس کلودفلر ورکر خودت (اینجا رو با آدرس دقیق Worker خودت جایگزین کن)
+const WORKER_URL = "https://your-worker-subdomain.workers.dev/chat";
+
 // ==========================================================================
 // موتور ذخیره‌سازی محلی (LocalStorage Driver)
 // ==========================================================================
@@ -46,11 +49,9 @@ function loadFromStorage() {
   if (savedActiveId) state.activeChatId = savedActiveId;
   if (savedSettings) {
     state.settings = JSON.parse(savedSettings);
-    // اعمال مقادیر ذخیره شده در فرم تنظیمات
     if (dom.modelSelect) dom.modelSelect.value = state.settings.model;
     if (dom.systemPromptInput) dom.systemPromptInput.value = state.settings.systemPrompt;
   }
-  
   updateModelBadge();
 }
 
@@ -75,7 +76,6 @@ function switchChat(chatId) {
   state.activeChatId = chatId;
   saveToStorage();
   
-  // فعال کردن کلاس اکتیو در سایدبار
   document.querySelectorAll('.chat-item').forEach(item => {
     item.classList.remove('active');
     if (item.dataset.id === chatId) item.classList.add('active');
@@ -87,7 +87,6 @@ function switchChat(chatId) {
     dom.messagesContainer.innerHTML = '';
     
     if (currentChat.messages.length === 0) {
-      // نمایش صفحه خوش‌آمدگویی در صورت خالی بودن گفتگو
       showWelcomeScreen();
     } else {
       currentChat.messages.forEach(msg => {
@@ -99,7 +98,7 @@ function switchChat(chatId) {
 }
 
 function deleteChat(chatId, event) {
-  event.stopPropagation(); // جلوگیری از کلیک روی کل آیتم چت
+  event.stopPropagation();
   state.chats = state.chats.filter(c => c.id !== chatId);
   
   if (state.activeChatId === chatId) {
@@ -122,9 +121,9 @@ function showWelcomeScreen() {
   dom.messagesContainer.innerHTML = `
     <div style="text-align: center; margin: auto; max-width: 500px; color: var(--text-muted); padding: 20px;">
       <i class="bi bi-chat-square-text" style="font-size: 48px; color: #3f607a;"></i>
-      <h2 style="color: white; margin-top: 15px; font-weight: 400;">چت شبیه‌ساز مدل‌های نسل جدید</h2>
+      <h2 style="color: white; margin-top: 15px; font-weight: 400;">چت‌بات متصل به Cloudflare Worker</h2>
       <p style="font-size: 14px; margin-top: 10px; line-height: 1.6;">
-        یک گفتگو را انتخاب کنید یا پیام خود را در باکس پایین بنویسید. مدل‌های جدید Gemini 3.6، DeepSeek و Llama آماده بررسی ساختارها هستند.
+        کلیدهای API شما روی سرور فعال است. مدل مورد نظر را انتخاب کرده و پیام خود را ارسال کنید.
       </p>
     </div>
   `;
@@ -164,7 +163,6 @@ function renderMessageItem(text, sender) {
   const contentDiv = document.createElement('div');
   contentDiv.className = 'message-content';
   
-  // فرمت‌دهی ساده برای نمایش بلاک‌های کدهای برنامه
   if (text.includes('```')) {
     contentDiv.innerHTML = formatCodeBlocks(text);
   } else {
@@ -201,13 +199,12 @@ function updateModelBadge() {
 }
 
 // ==========================================================================
-// موتور هوش مصنوعی و شبیه‌ساز پاسخ (اصلاح شده و داینامیک)
+// موتور ارسال پیام واقعی به Cloudflare Worker
 // ==========================================================================
-function handleSendMessage() {
+async function handleSendMessage() {
   const text = dom.chatInput.value.trim();
   if (!text) return;
 
-  // ایجاد گفتگوی اتوماتیک در صورت نبود چت فعال
   if (!state.activeChatId || state.chats.length === 0) {
     const newId = 'chat_' + Date.now();
     const newChat = {
@@ -222,16 +219,13 @@ function handleSendMessage() {
 
   const currentChat = state.chats.find(c => c.id === state.activeChatId);
   
-  // اگر اولین پیام چت باشه، عنوان چت رو بر اساس پیام تنظیم کن
   if (currentChat && currentChat.messages.length === 0) {
     currentChat.title = text.substring(0, 25) + (text.length > 25 ? '...' : '');
     renderSidebar();
     dom.currentChatTitle.textContent = currentChat.title;
   }
 
-  // اضافه کردن و نمایش پیام کاربر
   currentChat.messages.push({ sender: 'user', text: text });
-  // پاک کردن صفحه خوش‌آمدگویی در اولین پیام
   if (currentChat.messages.length === 1) dom.messagesContainer.innerHTML = '';
   renderMessageItem(text, 'user');
   
@@ -239,7 +233,6 @@ function handleSendMessage() {
   dom.chatInput.style.height = '44px';
   saveToStorage();
 
-  // ایجاد انیمیشن لودینگ و سه نقطه برای بات
   const loadingId = 'loading_' + Date.now();
   const loadingDiv = document.createElement('div');
   loadingDiv.className = 'message bot';
@@ -253,48 +246,46 @@ function handleSendMessage() {
   dom.messagesContainer.appendChild(loadingDiv);
   dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
 
-  // فراخوانی موتور هوش مصنوعی اصلاح‌شده
-  simulateAIResponse(text, loadingId, currentChat);
-}
+  // ارسال به API واقعی
+  const selectedModel = dom.modelSelect ? dom.modelSelect.value : state.settings.model;
 
-function simulateAIResponse(userPrompt, loadingId, currentChat) {
-  setTimeout(() => {
+  try {
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: text,
+        model: selectedModel,
+        systemPrompt: state.settings.systemPrompt
+      })
+    });
+
+    const data = await response.json();
     const loadingEl = document.getElementById(loadingId);
     if (loadingEl) loadingEl.remove();
 
-    // استخراج دقیق نام مدل انتخاب شده از DOM یا وضعیت ذخیره‌شده
-    const selectedModelValue = state.settings.model || 'gemini-3.5-flash';
-    const selectedModelName = dom.modelSelect ? dom.modelSelect.options[dom.modelSelect.selectedIndex].text : selectedModelValue;
+    const finalResponse = data.response || data.error || "پاسخی از سرور دریافت نشد.";
 
-    // متن پیش‌فرض برای حالت جنرال
-    let finalResponse = `سلام امیر صالح عزیز! من مدل **${selectedModelName}** هستم. پیام شما رو دریافت کردم: "${userPrompt}". این بخش به صورت هوشمند فرانت‌اند شبیه‌سازی شده و به محض متصل کردن کلید API به بک‌اند، پاسخ‌های زنده سرور رو دریافت می‌کنی!`;
-
-    const promptLower = userPrompt.toLowerCase();
-    
-    // لایه شرطی پیشرفته برای فیلتر کردن کلمات صمیمی و دستورات اختصاصی
-    if (promptLower.includes('سلام') || promptLower.includes('درود') || promptLower.includes('داداش') || promptLower.includes('داداشم') || promptLower.includes('داش')) {
-      finalResponse = `مخلصم داداش! جانم؟ چطور می‌تونم کمکت کنم؟ من به عنوان مدل **${selectedModelName}** در خدمتتم تا هر پرامپت، پروژه وب‌توسعه، ربات یا کدی که داری رو با هم جلو ببریم.`;
-    } else if (promptLower.includes('html') || promptLower.includes('طراحی') || promptLower.includes('css') || promptLower.includes('سایت')) {
-      finalResponse = `البته! این هم یک ساختار نمونه تمیز سند HTML5 برای کارت‌های UI یا بخش‌های فرانت‌اند پروژه‌ات:\n\n\`\`\`html\n<!DOCTYPE html>\n<html lang="fa" dir="rtl">\n<head>\n  <meta charset="UTF-8">\n  <title>استودیو طراحی وب</title>\n  <style>\n    .box { border-radius: 8px; background: #222; color: #fff; padding: 15px; border: 1px solid #3c4043; }\n  </style>\n</head>\n<body>\n  <div class="box">\n    <h2>پروژه جدید با مدل ${selectedModelName}</h2>\n    <p>توسعه وب فرانت‌اند با سرعت عالی!</p>\n  </div>\n</body>\n</html>\n\`\`\``;
-    } else if (promptLower.includes('پایتون') || promptLower.includes('python') || promptLower.includes('بات') || promptLower.includes('ربات')) {
-      finalResponse = `واسه نوشتن ربات‌ها یا ساختارهای بک‌اند با پایتون، پکیج‌ها و کدهای پایه رو می‌تونی به این صورت استارت بزنی:\n\n\`\`\`python\nimport os\n\ndef check_ai_status():\n    active_model = "${selectedModelValue}"\n    print(f"[سیستم] ربات با موفقیت روی مدل {active_model} راه اندازی شد.")\n\nif __name__ == "__main__":\n    check_ai_status()\n\`\`\``;
-    } else if (promptLower.includes('مدل') || promptLower.includes('چه مدلی') || promptLower.includes('تنظیمات')) {
-      finalResponse = `در حال حاضر شما این گفتگو را تنظیم کرده‌اید روی موتور هوش مصنوعی: **${selectedModelName}**. پرامپت‌های شما از این پس با این مدل در بخش فرانت پردازش شبیه‌سازی می‌شوند.`;
-    }
-
-    // ذخیره در دیتابیس محلی چت و رندر نهایی
     currentChat.messages.push({ sender: 'bot', text: finalResponse });
     saveToStorage();
     renderMessageItem(finalResponse, 'bot');
-  }, 1100);
+
+  } catch (error) {
+    console.error("Worker connection error:", error);
+    const loadingEl = document.getElementById(loadingId);
+    if (loadingEl) loadingEl.remove();
+
+    const errorMsg = "خطا در ارتباط با سرور کلودفلر. لطفاً آدرس Worker یا اتصال اینترنت را بررسی کنید.";
+    currentChat.messages.push({ sender: 'bot', text: errorMsg });
+    saveToStorage();
+    renderMessageItem(errorMsg, 'bot');
+  }
 }
 
 // ==========================================================================
 // لایه رویدادها و مدیریت پنل تنظیمات (Event Listeners)
 // ==========================================================================
 function initEventListeners() {
-  
-  // ارسال پیام با دکمه یا کلید اینتر
   dom.sendBtn.addEventListener('click', handleSendMessage);
   dom.chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -303,16 +294,13 @@ function initEventListeners() {
     }
   });
 
-  // تغییر خودکار ارتفاع textarea بر اساس متن ورودی
   dom.chatInput.addEventListener('input', function() {
     this.style.height = '44px';
     this.style.height = (this.scrollHeight) + 'px';
   });
 
-  // دکمه گفتگوی جدید
   dom.newChatBtn.addEventListener('click', createNewChat);
 
-  // باز و بستن مدال تنظیمات
   dom.settingsBtn.addEventListener('click', () => {
     dom.settingsModal.style.display = 'flex';
   });
@@ -320,12 +308,10 @@ function initEventListeners() {
     dom.settingsModal.style.display = 'none';
   });
   
-  // بستن مدال با کلیک روی فضای بیرونی
   window.addEventListener('click', (e) => {
     if (e.target === dom.settingsModal) dom.settingsModal.style.display = 'none';
   });
 
-  // ذخیره تنظیمات مدال
   dom.saveSettingsBtn.addEventListener('click', () => {
     state.settings.model = dom.modelSelect.value;
     state.settings.systemPrompt = dom.systemPromptInput.value;
@@ -333,18 +319,16 @@ function initEventListeners() {
     updateModelBadge();
     dom.settingsModal.style.display = 'none';
     
-    // ارسال یک پیام فیدبک سیستم در چت در صورت فعال بودن
     if (state.activeChatId && state.chats.length > 0) {
       const currentChat = state.chats.find(c => c.id === state.activeChatId);
       const selectedText = dom.modelSelect.options[dom.modelSelect.selectedIndex].text;
-      const sysNotice = `[تنظیمات سیستم سیستم آپدیت شد: سوئیچ به مدل ${selectedText}]`;
+      const sysNotice = `[سیستم: سوئیچ موفق به مدل ${selectedText}]`;
       currentChat.messages.push({ sender: 'bot', text: sysNotice });
       renderMessageItem(sysNotice, 'bot');
       saveToStorage();
     }
   });
 
-  // سیستم پشتیبان‌گیری سریع (Backup & Restore)
   dom.backupBtn.addEventListener('click', () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
     const downloadAnchor = document.createElement('a');
@@ -356,16 +340,12 @@ function initEventListeners() {
   });
 }
 
-// ==========================================================================
-// اورکستراسیون و راه‌اندازی اولیه اپلیکیشن (Initialization)
-// ==========================================================================
 function initApp() {
   loadFromStorage();
   initEventListeners();
   
   if (state.chats.length > 0) {
     renderSidebar();
-    // اگر شناسه فعال نامعتبر بود، اولین چت را انتخاب کن
     const validChat = state.chats.find(c => c.id === state.activeChatId);
     switchChat(validChat ? state.activeChatId : state.chats[0].id);
   } else {
@@ -373,5 +353,4 @@ function initApp() {
   }
 }
 
-// اجرای ساختار برنامه به محض لود شدن صفحه
 document.addEventListener('DOMContentLoaded', initApp);
