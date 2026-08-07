@@ -1,25 +1,37 @@
 // ==========================================================================
-// ChatGPT Classic — Gemini Edition — app.js (نسخه متنی و کامل)
+// ChatGPT Classic — Developer Edition — app.js
 // ==========================================================================
+
+// تابع جهانی برای کپی کردن کدهای داخل باکس کد (مشابه چت‌جی‌پی‌تی)
+window.copyCodeSnippet = function(btn) {
+  const container = btn.closest('.code-block-container');
+  if (!container) return;
+  const code = container.querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> کپی شد!';
+    setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+  });
+};
 
 // ---- Model catalog (single source of truth) --------------------------------
 const MODEL_CATALOG = [
   // ---- Text (Gemini) ----
-  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'جدیدترین مدل فلش — سریع' },
-  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل پایدار و سریع' },
+  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'جدیدترین مدل فلش — سریع و مناسب کدنویسی' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل پایدار و دقیق' },
   { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', group: '📝 متنی (Gemini)', category: 'text', desc: 'نسخه سبک، مصرف کم' },
   { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', group: '📝 متنی (Gemini)', category: 'text', desc: 'سبک‌ترین نسخه ۳.۱' },
   { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل متن‌باز ۳۱ میلیاردی' },
   { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B MoE IT', group: '📝 متنی (Gemini)', category: 'text', desc: 'مدل متن‌باز MoE' },
 
   // ---- Text (Groq) ----
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'قدرتمندترین مدل Groq' },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'قدرتمندترین مدل Groq برای کدنویسی' },
   { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', group: '📝 متنی (Groq)', category: 'text', desc: 'سریع و مقرون‌به‌صرفه' },
-  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'مدل استدلال عمیق' },
+  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'مدل استدلال عمیق و حل مسائل الگوریتمی' },
 ];
 
 const CATEGORY_META = {
-  text:        { label: 'متنی',   icon: 'fa-comment-dots' },
+  text:        { label: 'متنی',   icon: 'fa-code' },
   tts:         { label: 'صوتی',   icon: 'fa-microphone-lines' },
   music:       { label: 'موسیقی', icon: 'fa-music' },
   video:       { label: 'ویدیو',  icon: 'fa-clapperboard' },
@@ -27,10 +39,10 @@ const CATEGORY_META = {
 };
 
 const SUGGESTIONS = [
-  'یک ایده برای پروژه برنامه‌نویسی بده',
-  'خلاصه‌ای از یک کتاب معروف بنویس',
-  'یک مقاله کوتاه درباره هوش مصنوعی بفرست',
-  'یک متن با صدای Kore تولید کن',
+  'یک اسکریپت پایتون برای دانلود ویدیو بنویس',
+  'یک تابع جاوا اسکریپت برای اعتبار سنجی فرم بنویس',
+  'طراحی صفحه لاگین مدرن با HTML و CSS',
+  'حل الگوریتم مرتب‌سازی سریع در C++',
 ];
 
 function findModel(id) { return MODEL_CATALOG.find(m => m.id === id) || MODEL_CATALOG[0]; }
@@ -102,14 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // defaults for generation params
-  state.params.temperature ??= 1.0;
-  state.params.maxOutputTokens ??= 2048;
+  state.params.temperature ??= 0.2; // دمای پایین‌تر برای کدنویسی دقیق‌تر
+  state.params.maxOutputTokens ??= 4096;
   state.params.topP ??= 0.95;
   state.params.voiceName ??= 'Kore';
 
   applyTheme(state.theme);
 
-  // ---- Long-term memory (Cloudflare KV / Backend API) ----
+  // ---- Long-term memory ----
   if (memoryEnabledToggle) {
     memoryEnabledToggle.checked = state.memoryEnabled;
     memoryEnabledToggle.addEventListener('change', () => {
@@ -120,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (clearMemoryBtn) {
     clearMemoryBtn.addEventListener('click', async () => {
-      if (!confirm('حافظه بلندمدت برای همیشه پاک شود؟')) return;
+      if (!confirm('حافظه بلندمدت پاک شود؟')) return;
       clearMemoryBtn.disabled = true;
       try {
         const res = await fetch('/api/memory?uid=' + encodeURIComponent(clientId), { method: 'DELETE' });
@@ -145,14 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
         state.longTermMemory = data.memory || '';
         if (memoryBox) memoryBox.value = state.longTermMemory;
       }
-    } catch (err) { /* silently ignore */ }
+    } catch (err) { /* ignore */ }
   }
   loadMemory();
 
   function buildSystemInstruction() {
-    let sys = state.systemPrompt || '';
+    let sys = state.systemPrompt || 'تو یک دستیار هوشمند و حرفه‌ای برنامه‌نویسی هستی (مشابه ChatGPT). کدهای درخواستی کاربر را بسیار تمیز، بهینه، همراه با کامنت‌های آموزشی و حتماً در بلوک‌های کد استاندارد (با مشخص کردن زبان) تحویل بده.';
     if (state.memoryEnabled && state.longTermMemory) {
-      sys += (sys ? '\n\n' : '') + '--- حافظه بلندمدت درباره کاربر (از گفتگوهای قبلی) ---\n' + state.longTermMemory;
+      sys += (sys ? '\n\n' : '') + '--- حافظه بلندمدت درباره کاربر ---\n' + state.longTermMemory;
     }
     return sys ? { parts: [{ text: sys }] } : undefined;
   }
@@ -161,12 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!state.memoryEnabled) return;
     try {
       const extractPrompt =
-        'حافظه فعلی کاربر (فهرست نکات پایدار):\n' + (state.longTermMemory || '(خالی)') +
+        'حافظه فعلی کاربر:\n' + (state.longTermMemory || '(خالی)') +
         '\n\nتبادل جدید:\nکاربر: ' + userText + '\nپاسخ دستیار: ' + assistantText +
-        '\n\nوظیفه: فقط نکات پایدار و مهم درباره کاربر (نام، شغل، علایق، ترجیحات، پروژه‌های در حال انجام) را از «تبادل جدید» استخراج کن و با «حافظه فعلی» ادغام کن. ' +
-        'نکات موقتی، احساسات لحظه‌ای، سوالات عمومی را ذخیره نکن. ' +
-        'فقط فهرست نهایی به‌روزشده را به‌صورت خطوط bullet (هر خط با -) و به فارسی خروجی بده، بدون هیچ توضیح اضافه. ' +
-        'اگر نکته پایدار جدیدی وجود نداشت، همان حافظه فعلی را بدون تغییر برگردان.';
+        '\n\nوظیفه: فقط ترجیحات برنامه‌نویسی، زبان‌های مورد استفاده و پروژه‌های مهم کاربر را استخراج و ادغام کن. فهرست نهایی را به صورت - خروجی بده.';
 
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -218,12 +227,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateModelDescBox() {
     if (!modelDescBox || !modelSelect) return;
     const m = findModel(modelSelect.value);
-    modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-comment-dots'}"></i> ${escapeHtml(m.desc)}`;
+    modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-code'}"></i> ${escapeHtml(m.desc)}`;
   }
 
   // ---- Category pills ----
   const categories = ['all', 'text', 'tts', 'music', 'video', 'unsupported'];
-  const categoryLabels = { all: 'همه', text: '📝 متنی', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
+  const categoryLabels = { all: 'همه', text: '📝 متنی/کد', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
   let activeCategory = 'all';
 
   if (categoryPills) {
@@ -275,28 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (m.category === 'text') {
-      sliderRow('temperature', 'دما (Temperature)', 0, 2, 0.05, 'مقدار بالاتر = خلاقانه‌تر', v => v.toFixed(2));
+      sliderRow('temperature', 'دما (Temperature)', 0, 2, 0.05, 'مقدار پایین‌تر (۰.۲) برای کدنویسی دقیق‌تر مناسب است', v => v.toFixed(2));
       sliderRow('topP', 'Top-P', 0, 1, 0.01, 'کنترل تنوع کلمات', v => v.toFixed(2));
-      sliderRow('maxOutputTokens', 'حداکثر توکن خروجی', 256, 8192, 256, 'محدودیت طول پاسخ');
-    }
-    if (m.category === 'tts') {
-      const row = document.createElement('div');
-      row.className = 'param-row';
-      row.innerHTML = `
-        <div class="param-head"><span>نام صدا (Voice)</span></div>
-        <input type="text" class="form-control" id="voiceNameInput" value="${escapeHtml(state.params.voiceName)}" placeholder="مثلاً Kore, Puck, Zephyr">
-        <div class="param-hint">لیست کامل صداها در مستندات Gemini TTS</div>`;
-      dynamicParams.appendChild(row);
-      row.querySelector('#voiceNameInput').addEventListener('input', (e) => { state.params.voiceName = e.target.value.trim() || 'Kore'; });
-    }
-    if (m.category === 'music' || m.category === 'video' || m.category === 'unsupported') {
-      const note = document.createElement('div');
-      note.className = 'model-desc';
-      note.style.marginTop = '4px';
-      note.innerHTML = m.category === 'video'
-        ? '<i class="fa-solid fa-circle-info"></i> تولید ویدیو زمان‌بر و غیرهمزمان است.'
-        : '<i class="fa-solid fa-circle-info"></i> این دسته در این نسخه پشتیبانی کامل ندارند.';
-      dynamicParams.appendChild(note);
+      sliderRow('maxOutputTokens', 'حداکثر توکن خروجی', 256, 8192, 256, 'طول پاسخ کدها');
     }
   }
 
@@ -326,25 +316,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---- Header / context bar ----
+  // ---- Header ----
   function updateHeaderForModel(modelId) {
     const m = findModel(modelId);
     if (currentModelName) currentModelName.textContent = m.name;
-    if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-comment-dots'}"></i>`;
+    if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-code'}"></i>`;
     if (!modelContextBar) return;
-
-    if (m.category === 'unsupported') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> این مدل برای گفتگو مناسب نیست — لطفاً از تنظیمات یک مدل دیگر انتخاب کنید.`;
-    } else if (m.category === 'video') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-clapperboard"></i> حالت تولید ویدیو فعال — ممکن است چند دقیقه طول بکشد.`;
-    } else if (m.category === 'tts') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-microphone-lines"></i> حالت تبدیل متن به گفتار — صدا: ${escapeHtml(state.params.voiceName)}`;
-    } else {
-      modelContextBar.style.display = 'none';
-    }
+    modelContextBar.style.display = 'none';
   }
 
   // ---- Textarea autosize ----
@@ -360,9 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('closed'));
   if (openSidebarBtn) openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('closed'));
 
-  // ============================================================
-  // FILE UPLOAD HANDLERS
-  // ============================================================
+  // ---- File upload ----
   function clearUploadedFile() {
     state.uploadedFile = null;
     if (fileBadge) fileBadge.style.display = 'none';
@@ -371,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fileNameDisplay.innerHTML = '';
     }
     if (fileUploadBtn) fileUploadBtn.classList.remove('has-file');
-    if (promptInput) promptInput.placeholder = 'هر چه می‌خواهید بپرسید...';
+    if (promptInput) promptInput.placeholder = 'کد یا سوال خود را مطرح کنید...';
     if (sendBtn) sendBtn.disabled = promptInput.value.trim() === '';
   }
 
@@ -384,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (fileUploadBtn) fileUploadBtn.classList.add('has-file');
 
       const file = state.uploadedFile;
-      const fileIcon = file.mimeType.startsWith('image/') ? 'fa-image' : 'fa-file-lines';
+      const fileIcon = file.mimeType.startsWith('image/') ? 'fa-image' : 'fa-file-code';
       if (fileNameDisplay) {
         fileNameDisplay.innerHTML = `
           <i class="fa-regular ${fileIcon} file-icon"></i>
@@ -403,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
       }
-      if (promptInput) promptInput.placeholder = `📎 ${file.name} — پیام خود را تایپ کنید...`;
+      if (promptInput) promptInput.placeholder = `📎 ${file.name} — دستور خود را تایپ کنید...`;
     } else {
       clearUploadedFile();
     }
@@ -422,26 +398,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const validTypes = ['image/', 'text/', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      const isValid = validTypes.some(type => file.type.startsWith(type) || file.type === type);
-
-      if (!isValid) {
-        showToast('فقط تصاویر و فایل‌های متنی پشتیبانی می‌شوند', 'error');
-        fileInput.value = '';
-        return;
-      }
-
       const reader = new FileReader();
       reader.onload = (ev) => {
         const base64 = ev.target.result.split(',')[1];
         state.uploadedFile = {
           data: base64,
-          mimeType: file.type,
+          mimeType: file.type || 'text/plain',
           name: file.name,
           size: file.size,
         };
         updateFileBadge();
-        showToast(`فایل "${file.name}" آپلود شد ✅`, 'success');
+        showToast(`فایل "${file.name}" آماده شد ✅`, 'success');
         if (sendBtn) sendBtn.disabled = false;
       };
       reader.readAsDataURL(file);
@@ -478,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (saveSettingsBtn) {
     saveSettingsBtn.addEventListener('click', () => {
-      const prevCategory = findModel(state.modelId).category;
       state.modelId = pendingModelId;
       state.systemPrompt = systemInstructionInput ? systemInstructionInput.value : '';
       localStorage.setItem('selectedModel', state.modelId);
@@ -486,23 +452,15 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('genParams', JSON.stringify(state.params));
       updateHeaderForModel(state.modelId);
       closeModal();
-      const m = findModel(state.modelId);
-      showToast(`مدل به «${m.name}» تغییر کرد`, 'success');
-      if (m.category !== prevCategory) {
-        appendSystemNotice(`سوییچ به مدل ${m.name} (${CATEGORY_META[m.category]?.label || 'متنی'}) انجام شد.`);
-      }
+      showToast(`مدل به «${findModel(state.modelId).name}» تغییر کرد`, 'success');
     });
   }
 
   if (testConnBtn) testConnBtn.addEventListener('click', testConnection);
 
-  // ---- Chat Management (Save/Load/Delete) ----
+  // ---- Chat Management ----
   function saveCurrentChat() {
-    if (conversationHistory.length === 0) {
-      showToast('چیزی برای ذخیره وجود ندارد', 'error');
-      return;
-    }
-
+    if (conversationHistory.length === 0) return;
     const title = getChatTitle();
     const chatId = state.currentChatId || 'chat_' + Date.now();
     const chatData = {
@@ -515,11 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
     const existingIndex = chats.findIndex(c => c.id === chatId);
-    if (existingIndex !== -1) {
-      chats[existingIndex] = chatData;
-    } else {
-      chats.push(chatData);
-    }
+    if (existingIndex !== -1) chats[existingIndex] = chatData;
+    else chats.push(chatData);
 
     localStorage.setItem('savedChats', JSON.stringify(chats));
     state.currentChatId = chatId;
@@ -532,9 +487,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const firstUser = conversationHistory.find(msg => msg.role === 'user');
     if (firstUser && firstUser.parts && firstUser.parts[0] && firstUser.parts[0].text) {
       const text = firstUser.parts[0].text;
-      return text.length > 40 ? text.substring(0, 40) + '...' : text;
+      return text.length > 35 ? text.substring(0, 35) + '...' : text;
     }
-    return 'چت بدون عنوان';
+    return 'پروژه جدید کدنویسی';
   }
 
   function loadChatsList() {
@@ -558,13 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
       item.className = 'history-item';
       if (chat.id === state.currentChatId) item.classList.add('active');
 
-      const date = new Date(chat.timestamp);
-      const timeStr = date.toLocaleDateString('fa-IR') + ' ' + date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-
       item.innerHTML = `
-        <i class="fa-regular fa-comment"></i>
+        <i class="fa-regular fa-code"></i>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(chat.title)}</span>
-        <span style="font-size:10px;color:var(--text-muted);direction:ltr;margin-left:4px;">${timeStr}</span>
         <button class="icon-btn delete-chat-btn" data-id="${chat.id}" style="width:24px;height:24px;font-size:11px;color:#dc2626;" title="حذف چت">
           <i class="fa-regular fa-trash-can"></i>
         </button>
@@ -589,10 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadChat(chatId) {
     const chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
     const chat = chats.find(c => c.id === chatId);
-    if (!chat) {
-      showToast('چت پیدا نشد', 'error');
-      return;
-    }
+    if (!chat) return;
 
     messagesList.innerHTML = '';
     messagesList.style.display = 'flex';
@@ -606,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.className = `message-row ${msg.role === 'user' ? 'user' : 'assistant'}`;
       const isUser = msg.role === 'user';
       row.innerHTML = `
-        <div class="avatar-mini">${isUser ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-sparkles"></i>'}</div>
+        <div class="avatar-mini">${isUser ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-code"></i>'}</div>
         <div class="message-col">
           <div class="message-bubble">${msg.parts && msg.parts[0] && msg.parts[0].text ? renderMarkdown(msg.parts[0].text) : ''}</div>
           <div class="msg-actions"></div>
@@ -627,12 +575,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     scrollToBottom();
     loadChatsList();
-    showToast(`چت "${chat.title}" بارگذاری شد`, 'success');
   }
 
   function deleteChat(chatId) {
-    if (!confirm('آیا این چت برای همیشه حذف شود؟')) return;
-
+    if (!confirm('آیا این گفت‌وگو حذف شود؟')) return;
     let chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
     chats = chats.filter(c => c.id !== chatId);
     localStorage.setItem('savedChats', JSON.stringify(chats));
@@ -642,30 +588,21 @@ document.addEventListener('DOMContentLoaded', () => {
       conversationHistory = [];
       messagesList.innerHTML = '';
       messagesList.style.display = 'none';
-      if (welcomeContainer) {
-        welcomeContainer.style.display = 'flex';
-        welcomeContainer.style.flexDirection = 'column';
-      }
+      if (welcomeContainer) welcomeContainer.style.display = 'flex';
     }
-
     loadChatsList();
     showToast('چت حذف شد', 'success');
   }
 
   function autoSaveChat() {
     if (conversationHistory.length === 0) return;
-
     const currentData = JSON.stringify(conversationHistory);
     if (currentData === lastSavedChat) return;
 
-    if (!state.currentChatId) {
-      state.currentChatId = 'chat_' + Date.now();
-    }
-
-    const title = getChatTitle();
+    if (!state.currentChatId) state.currentChatId = 'chat_' + Date.now();
     const chatData = {
       id: state.currentChatId,
-      title: title,
+      title: getChatTitle(),
       history: conversationHistory,
       timestamp: Date.now(),
       model: state.modelId,
@@ -673,11 +610,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let chats = JSON.parse(localStorage.getItem('savedChats') || '[]');
     const existingIndex = chats.findIndex(c => c.id === state.currentChatId);
-    if (existingIndex !== -1) {
-      chats[existingIndex] = chatData;
-    } else {
-      chats.push(chatData);
-    }
+    if (existingIndex !== -1) chats[existingIndex] = chatData;
+    else chats.push(chatData);
 
     localStorage.setItem('savedChats', JSON.stringify(chats));
     lastSavedChat = currentData;
@@ -692,20 +626,16 @@ document.addEventListener('DOMContentLoaded', () => {
       lastSavedChat = null;
       messagesList.innerHTML = '';
       messagesList.style.display = 'none';
-      if (welcomeContainer) {
-        welcomeContainer.style.display = 'flex';
-        welcomeContainer.style.flexDirection = 'column';
-      }
+      if (welcomeContainer) welcomeContainer.style.display = 'flex';
       clearUploadedFile();
       loadChatsList();
       if (sidebar) sidebar.classList.add('closed');
     });
   }
 
-  // ---- Save Chat Button ----
   if (saveChatBtn) saveChatBtn.addEventListener('click', saveCurrentChat);
 
-  // ---- Enter to send ----
+  // ---- Keydown listener ----
   if (promptInput) {
     promptInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -729,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (welcomeContainer) welcomeContainer.style.display = 'none';
     if (messagesList) messagesList.style.display = 'flex';
 
-    let displayText = text || (state.uploadedFile ? `[فایل: ${state.uploadedFile.name}]` : '');
+    let displayText = text || (state.uploadedFile ? `[فایل کد: ${state.uploadedFile.name}]` : '');
     appendUserMessage(displayText, state.uploadedFile);
 
     if (promptInput) {
@@ -757,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // GEMINI TEXT GENERATION HANDLER
+  // GENERATION HANDLER
   // ==========================================================================
   async function handleGeminiGenerate(model, bubble) {
     const modelId = model?.id || state.modelId || 'gemini-3.6-flash';
@@ -767,9 +697,9 @@ document.addEventListener('DOMContentLoaded', () => {
       contents: conversationHistory,
       systemInstruction: buildSystemInstruction(),
       generationConfig: {
-        temperature: state.params?.temperature ?? 0.7,
+        temperature: state.params?.temperature ?? 0.2,
         topP: state.params?.topP ?? 0.95,
-        maxOutputTokens: state.params?.maxOutputTokens ?? 2048,
+        maxOutputTokens: state.params?.maxOutputTokens ?? 4096,
       },
     };
 
@@ -796,7 +726,78 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // UI & DOM HELPERS
+  // CHATGPT-STYLE MARKDOWN & CODE RENDERING
+  // ==========================================================================
+  function renderMarkdown(text) {
+    if (!text) return '';
+
+    const codeBlocks = [];
+
+    // ۱. استخراج بلوک‌های کد (```lang ... ```) قبل از تبدیل کاراکترهای HTML
+    let html = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+      const index = codeBlocks.length;
+      const language = lang.trim() || 'code';
+      const cleanCode = code.trim();
+
+      const blockHtml = `
+        <div class="code-block-container">
+          <div class="code-block-header">
+            <span class="code-lang">${escapeHtml(language)}</span>
+            <button class="copy-code-btn" onclick="copyCodeSnippet(this)">
+              <i class="fa-regular fa-copy"></i> کپی کد
+            </button>
+          </div>
+          <pre><code class="language-${escapeHtml(language)}">${escapeHtml(cleanCode)}</code></pre>
+        </div>`;
+
+      codeBlocks.push(blockHtml);
+      return `___CODE_BLOCK_${index}___`;
+    });
+
+    // ۲. امن‌سازی متن‌های معمولی
+    html = escapeHtml(html);
+
+    // ۳. تبدیل کدهای درون‌خطی `code`
+    html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+
+    // ۴. استایل‌های بولد و ایتالیک
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // ۵. تبدیل خطوط جدید به <br> فقط برای متن معمولی
+    html = html.replace(/\n/g, '<br>');
+
+    // ۶. بازگرداندن بلوک‌های کد سالم به داخل متن
+    codeBlocks.forEach((block, index) => {
+      html = html.replace(`___CODE_BLOCK_${index}___`, block);
+    });
+
+    return html;
+  }
+
+  // دکمه کپی ظریف و کوچک زیر کل پاسخ
+  function attachMessageEnhancements(bubble) {
+    const actions = bubble.parentElement.querySelector('.msg-actions') || bubble.parentElement;
+    
+    // پاک کردن دکمه‌های قبلی در صورت وجود
+    const existingBtn = actions.querySelector('.copy-msg-btn');
+    if (existingBtn) existingBtn.remove();
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-msg-btn';
+    copyBtn.title = 'کپی کل متن پاسخ';
+    copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> <span>کپی</span>';
+    
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(bubble.innerText);
+      showToast('متن پاسخ کپی شد', 'success');
+    });
+
+    actions.appendChild(copyBtn);
+  }
+
+  // ==========================================================================
+  // UI HELPERS
   // ==========================================================================
   function appendUserMessage(text, file) {
     const row = document.createElement('div');
@@ -820,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const row = document.createElement('div');
     row.className = 'message-row assistant';
     row.innerHTML = `
-      <div class="avatar-mini"><i class="fa-solid fa-sparkles"></i></div>
+      <div class="avatar-mini"><i class="fa-solid fa-code"></i></div>
       <div class="message-col">
         <div class="message-bubble typing-dots">
           <span></span><span></span><span></span>
@@ -829,18 +830,6 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesList.appendChild(row);
     scrollToBottom();
     return { row, bubble: row.querySelector('.message-bubble') };
-  }
-
-  function appendNotice(msg) {
-    const div = document.createElement('div');
-    div.className = 'system-notice';
-    div.innerHTML = `<i class="fa-solid fa-info-circle"></i> ${escapeHtml(msg)}`;
-    messagesList.appendChild(div);
-    scrollToBottom();
-  }
-
-  function appendSystemNotice(msg) {
-    appendNotice(msg);
   }
 
   function renderError(bubble, errText) {
@@ -867,32 +856,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function renderMarkdown(text) {
-    if (!text) return '';
-    let formatted = escapeHtml(text);
-    formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-    formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    formatted = formatted.replace(/\n/g, '<br>');
-    return formatted;
-  }
-
-  function attachMessageEnhancements(bubble) {
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-msg-btn';
-    copyBtn.title = 'کپی متن';
-    copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(bubble.innerText);
-      showToast('متن کپی شد', 'success');
-    });
-    const actions = bubble.parentElement.querySelector('.msg-actions') || bubble.parentElement;
-    actions.appendChild(copyBtn);
-  }
-
   async function testConnection() {
-    if (connStatus) connStatus.textContent = 'در حال بررسی ارتباط...';
+    if (connStatus) connStatus.textContent = 'در حال بررسی...';
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -905,13 +870,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (res.ok && !data.error) {
         if (connStatus) connStatus.textContent = 'ارتباط برقرار است ✅';
-        showToast('اتصال به سرور با موفقیت برقرار شد', 'success');
+        showToast('اتصال با موفقیت برقرار شد', 'success');
       } else {
-        throw new Error(data.error?.message || 'پاسخ نامعتبر از سرور');
+        throw new Error(data.error?.message || 'خطا در سرور');
       }
     } catch (e) {
       if (connStatus) connStatus.textContent = 'خطا در ارتباط ❌';
-      showToast('خطا در اتصال: ' + e.message, 'error');
+      showToast('خطا: ' + e.message, 'error');
     }
   }
 
