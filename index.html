@@ -1,250 +1,490 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="dark">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Gemini AI Studio Studio - نسخه پیشرفته</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>میز کار هوش مصنوعی | فرانت‌اند چت</title>
+  <!-- فونت وزیرمتن برای زیبایی محیط کاربری فارسی -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/misc/font-face.css">
+  <!-- آیکون‌های بوت‌استرپ -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   
-  <!-- فونت‌های استاندارد فارسی و کدنویسی -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- کتابخانه آیکون‌ها FontAwesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- فایل استایل CSS -->
-  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --bg-dark: #131314;
+      --sidebar-bg: #1e1f20;
+      --card-bg: #2b2c2e;
+      --text-main: #e3e3e3;
+      --text-muted: #aaaaaa;
+      --accent-color: #75aadb;
+      --border-color: #3c4043;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Vazirmatn', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* --- سایدبار سمت راست --- */
+    .sidebar {
+      width: 280px;
+      background-color: var(--sidebar-bg);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      transition: all 0.3s ease;
+    }
+
+    .new-chat-btn {
+      background: #3c4043;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      transition: background 0.2s;
+    }
+
+    .new-chat-btn:hover {
+      background: #4f5357;
+    }
+
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-item {
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-main);
+      transition: background 0.2s;
+    }
+
+    .chat-item:hover, .chat-item.active {
+      background-color: #333537;
+    }
+
+    .chat-item-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .delete-chat-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    .delete-chat-btn:hover {
+      color: #ff6b6b;
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .footer-btn:hover {
+      background: #333537;
+    }
+
+    /* --- بخش اصلی چت --- */
+    .main-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .chat-header {
+      height: 60px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background-color: var(--bg-dark);
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message {
+      max-width: 85%;
+      display: flex;
+      gap: 12px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .message.user .avatar {
+      background: #515c6b;
+    }
+
+    .message.bot .avatar {
+      background: #3f607a;
+    }
+
+    .message-content {
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.6;
+      font-size: 14px;
+      white-space: pre-line;
+    }
+
+    .message.user .message-content {
+      background-color: #2e3b4e;
+      border-top-left-radius: 2px;
+    }
+
+    .message.bot .message-content {
+      background-color: #202124;
+      border-top-right-radius: 2px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* استایل نمایش تکه کدها */
+    pre {
+      background-color: #0d0e10;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      direction: ltr;
+      text-align: left;
+      margin: 10px 0;
+      border: 1px solid #222;
+    }
+
+    code {
+      font-family: monospace;
+      color: #e5c07b;
+    }
+
+    /* --- باکس ورودی پیام --- */
+    .input-area {
+      padding: 15px 20px;
+      background-color: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-wrapper {
+      width: 100%;
+      max-width: 760px;
+      background-color: #202124;
+      border: 1px solid var(--border-color);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      padding: 6px 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: #555;
+      background-color: #28292c;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      padding: 10px;
+      font-size: 15px;
+      outline: none;
+      resize: none;
+      height: 44px;
+      max-height: 150px;
+    }
+
+    .send-btn {
+      background: none;
+      border: none;
+      color: var(--accent-color);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+    }
+
+    .send-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .disclaimer {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* --- مدال تنظیمات پیشرفته --- */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .form-control {
+      background-color: #1e1f20;
+      border: 1px solid var(--border-color);
+      color: white;
+      padding: 10px;
+      border-radius: 6px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .btn-save {
+      background-color: #3f607a;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      align-self: flex-end;
+      margin-top: 10px;
+    }
+
+    .btn-save:hover {
+      background-color: #4f7494;
+    }
+
+    /* انیمیشن لودینگ چت */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 8px;
+      align-items: center;
+    }
+
+    .typing-indicator span {
+      width: 6px;
+      height: 6px;
+      background-color: var(--text-muted);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- اعلان‌های سیستمی Toast -->
-  <div id="toastContainer" class="toast-container"></div>
-
-  <!-- سایدبار مدیریت گفتگوها -->
-  <aside id="sidebar" class="sidebar">
-    <div class="sidebar-header">
-      <button id="newChatBtn" class="btn-new-chat">
-        <i class="fa-solid fa-plus"></i>
-        <span>گفتگوی جدید</span>
-      </button>
-      <button id="closeSidebarBtn" class="icon-btn mobile-only" title="بستن منو">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+  <!-- سایدبار دسترسی‌ها و تاریخچه -->
+  <aside class="sidebar">
+    <button class="new-chat-btn" id="newChatBtn">
+      <i class="bi bi-plus-lg"></i>
+      <span>گفتگوی جدید</span>
+    </button>
+    
+    <div class="chat-list" id="chatListContainer">
+      <!-- آیتم‌های تاریخچه به صورت پویا توسط جاوااسکریپت اینجا درج می‌شوند -->
     </div>
 
-    <!-- جستجو در گفتگوها -->
-    <div class="sidebar-search">
-      <div class="search-input-wrapper">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" id="searchHistoryInput" placeholder="جستجو در گفتگوها...">
-      </div>
-    </div>
-
-    <!-- لیست گفتگوهای ذخیره‌شده -->
-    <div id="chatHistoryList" class="chat-history-list">
-      <div class="history-section-title">امروز</div>
-      <div id="historyContainer"></div>
-      <div id="historyEmpty" class="history-empty" style="display: none;">
-        <i class="fa-regular fa-comments"></i>
-        <p>هیچ گفتگویی یافت نشد</p>
-      </div>
-    </div>
-
-    <!-- فوتر سایدبار -->
     <div class="sidebar-footer">
-      <button id="exportDataBtn" class="sidebar-footer-btn" title="خروجی گرفتن از گفتگوها">
-        <i class="fa-solid fa-file-export"></i>
-        <span>پشتیبان‌گیری</span>
+      <button class="footer-btn" id="backupBtn">
+        <i class="bi bi-cloud-arrow-up"></i>
+        <span>پشتیبان‌گیری و بازیابی</span>
       </button>
-      <button id="openSettingsBtn" class="sidebar-footer-btn">
-        <i class="fa-solid fa-gear"></i>
+      <button class="footer-btn" id="settingsBtn">
+        <i class="bi bi-gear"></i>
         <span>تنظیمات پیشرفته</span>
       </button>
     </div>
   </aside>
 
-  <!-- پوشش پشت سایدبار در موبایل -->
-  <div id="sidebarOverlay" class="sidebar-overlay"></div>
-
-  <!-- بخش اصلی اپلیکیشن -->
-  <main id="mainApp" class="main-app">
-    
-    <!-- نوار بالای صفحه (Header) -->
-    <header class="top-bar">
-      <div class="top-bar-right">
-        <button id="openSidebarBtn" class="icon-btn" title="باز کردن سایدبار">
-          <i class="fa-solid fa-bars"></i>
-        </button>
-
-        <div id="modelSelectorDropdown" class="model-badge">
-          <span class="model-icon"><i class="fa-solid fa-bolt"></i></span>
-          <span id="currentModelName">Gemini 1.5 Flash</span>
-          <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
-        </div>
-      </div>
-
-      <div class="top-bar-center">
-        <span id="chatTitleHeader" class="chat-title-header">گفتگوی جدید</span>
-      </div>
-
-      <div class="top-bar-left">
-        <button id="clearChatBtn" class="icon-btn" title="پاک کردن چت فعلی">
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
-        <button id="themeToggleBtn" class="icon-btn" title="تغییر حالت شب/روز">
-          <i class="fa-solid fa-sun"></i>
-        </button>
-        <button id="settingsGearBtn" class="icon-btn" title="تنظیمات">
-          <i class="fa-solid fa-sliders"></i>
-        </button>
-      </div>
+  <!-- بخش اصلی چت -->
+  <main class="main-chat">
+    <header class="chat-header">
+      <div class="header-title" id="currentChatTitle">گفتگوی جدید</div>
+      <div style="font-size: 12px; color: var(--text-muted);" id="activeModelBadge">مدل: Gemini 3.5 Flash</div>
     </header>
 
-    <!-- منطقه نمایش پیام‌ها -->
-    <div id="chatContent" class="chat-content">
-      
-      <!-- حالت خوش‌آمدگویی (Welcome Screen) -->
-      <div id="welcomeContainer" class="welcome-container">
-        <div class="welcome-icon">
-          <i class="fa-solid fa-sparkles"></i>
-        </div>
-        <h1 class="welcome-title">سلام! چطور می‌توانم کمکتان کنم؟</h1>
-        <p class="welcome-subtitle">پرسش خود را بنویسید، کد تولید کنید یا فایل آپلود نمایید.</p>
-
-        <div class="quick-prompts">
-          <button class="quick-prompt-btn" data-prompt="یک کد HTML و CSS برام بنویس که یک کارت پروفایل مدرن باشه.">
-            <i class="fa-solid fa-code"></i>
-            <span>طراحی کارت HTML/CSS</span>
-          </button>
-          <button class="quick-prompt-btn" data-prompt="یک تابع پایتون بنویس برای محاسبه فاکتوریل به همراه توضیحات.">
-            <i class="fa-brands fa-python"></i>
-            <span>تابع فاکتوریل در پایتون</span>
-          </button>
-          <button class="quick-prompt-btn" data-prompt="نکات مهم برای بهینه‌سازی سرعت وب‌سایت چیست؟">
-            <i class="fa-solid fa-gauge-high"></i>
-            <span>بهینه‌سازی وب‌سایت</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- لیست اصلی پیام‌ها -->
-      <div id="messagesList" class="messages-list" style="display: none;"></div>
-
-      <!-- دکمه شناور رفتن به پایین صفحه -->
-      <button id="scrollToBottomBtn" class="scroll-bottom-btn" style="display: none;" title="انتقال به انتهای پیام‌ها">
-        <i class="fa-solid fa-arrow-down"></i>
-      </button>
+    <div class="chat-messages" id="chatMessagesContainer">
+      <!-- پیام‌ها اینجا رندر می‌شوند -->
     </div>
 
-    <!-- بخش ورودی پیام کاربر -->
-    <div class="input-wrapper">
-      
-      <!-- پیش‌نمایش فایل‌های آپلود شده -->
-      <div id="filePreviewContainer" class="file-preview-container" style="display: none;"></div>
-
-      <div class="input-box">
-        <textarea id="promptInput" rows="1" placeholder="هر چه می‌خواهید بپرسید..." autofocus></textarea>
-        
-        <div class="input-actions">
-          <div class="input-actions-left">
-            <button id="fileUploadBtn" class="icon-btn action-btn" title="آپلود فایل">
-              <i class="fa-solid fa-paperclip"></i>
-            </button>
-            <input type="file" id="fileInput" hidden multiple accept="image/*, .pdf, .txt, .js, .html, .css, .json, .py">
-
-            <button id="voiceInputBtn" class="icon-btn action-btn" title="ورودی صوتی (میکروفون)">
-              <i class="fa-solid fa-microphone"></i>
-            </button>
-          </div>
-          
-          <div class="input-actions-right">
-            <span id="charCounter" class="char-counter">0 / 4000</span>
-            <button id="sendBtn" class="send-btn" title="ارسال پیام" disabled>
-              <i class="fa-solid fa-arrow-up"></i>
-            </button>
-          </div>
-        </div>
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea class="chat-input" id="chatInput" placeholder="پیام خود را بنویسید..." rows="1"></textarea>
+        <button class="send-btn" id="sendBtn">
+          <i class="bi bi-send-fill"></i>
+        </button>
       </div>
-      
-      <div class="disclaimer-text">
+      <!-- پاورقی هماهنگ‌شده با درخواست کاربر -->
+      <div class="disclaimer">
         Gemini ممکن است اطلاعات نادرستی ارائه دهد، پاسخ‌ها را بررسی کنید.
       </div>
     </div>
-
   </main>
 
-  <!-- مدال تنظیمات عمومی و مدل -->
-  <div id="settingsModal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-content" role="dialog" aria-modal="true">
+  <!-- مدال تنظیمات پیشرفته و انتخاب مدل‌های جدید -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-sliders"></i> تنظیمات هوش مصنوعی</h3>
-        <button id="closeModalBtn" class="icon-btn" title="بستن"><i class="fa-solid fa-xmark"></i></button>
+        <h3>تنظیمات پیشرفته سیستم</h3>
+        <button class="close-modal" id="closeModalBtn">&times;</button>
       </div>
-
-      <div class="modal-tabs">
-        <button class="modal-tab active" data-tab="model">مدل و پارامترها</button>
-        <button class="modal-tab" data-tab="system">دستورالعمل سیستم</button>
-        <button class="modal-tab" data-tab="storage">مدیریت حافظه</button>
+      <div class="form-group">
+        <label for="modelSelect">انتخاب مدل پردازش هوش مصنوعی:</label>
+        <select id="modelSelect" class="form-control">
+          <optgroup label="خانواده Gemini">
+            <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+            <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash</option>
+            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+            <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+            <option value="gemini-4-31b-it">جمینای ۴ ۳۱B IT</option>
+            <option value="gemini-4-26b-moe-it">جمینای ۴ ۲۶B MOE IT</option>
+          </optgroup>
+          <optgroup label="مدل‌های Groq & Llama">
+            <option value="llama-3.3-70b-spec">Llama 3.3 70B (Groq متنی)</option>
+            <option value="llama-3.1-8b-instruct">لاما ۳.۱ ۸ب</option>
+          </optgroup>
+          <optgroup label="خانواده DeepSeek">
+            <option value="deepseek-r1">دیپ‌سیک R1</option>
+          </optgroup>
+        </select>
       </div>
-
-      <div class="modal-body">
-        <!-- تب تنظیمات مدل -->
-        <div class="tab-panel active" data-panel="model">
-          <div class="form-group">
-            <label class="input-label" for="modelSelect">انتخاب مدل اصلی</label>
-            <select id="modelSelect" class="select-input">
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash (سریع و بهینه)</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro (استدلال پیچیده و دقیق)</option>
-              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (ازمایشی و پرسرعت)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="input-label">
-              درجه خلاقیت (Temperature): <span id="tempValueDisplay">0.7</span>
-            </label>
-            <input type="range" id="temperatureInput" min="0" max="1" step="0.05" value="0.7" class="range-input">
-          </div>
-
-          <div class="form-group">
-            <label class="input-label">حداکثر طول پاسخ (Max Tokens)</label>
-            <select id="maxTokensSelect" class="select-input">
-              <option value="1024">1024 توکن</option>
-              <option value="2048">2048 توکن</option>
-              <option value="4096" selected>4096 توکن</option>
-              <option value="8192">8192 توکن</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- تب دستورالعمل سیستم -->
-        <div class="tab-panel" data-panel="system">
-          <div class="form-group">
-            <label class="input-label" for="systemInstruction">دستورالعمل اختصاصی (System Prompt)</label>
-            <textarea id="systemInstruction" class="textarea-input" placeholder="مثلاً: پاسخ‌ها را همیشه به عنوان یک برنامه‌نویس ارشد فرانت‌اند با لحنی دوستانه و دقیق ارسال کن..."></textarea>
-          </div>
-        </div>
-
-        <!-- تب مدیریت حافظه -->
-        <div class="tab-panel" data-panel="storage">
-          <div class="storage-info-box">
-            <p>تعداد گفتگوهای ذخیره شده: <strong id="totalChatsCount">0</strong></p>
-            <p>حجم تقریبی اشغال‌شده: <strong id="storageSizeCount">0 KB</strong></p>
-          </div>
-          <button id="clearAllHistoryBtn" class="btn-danger">
-            <i class="fa-solid fa-trash-can"></i> پاکسازی کامل تمام گفتگوها
-          </button>
-        </div>
+      <div class="form-group">
+        <label for="systemPromptInput">پرامپت سیستمی (رفتار پیش‌فرض):</label>
+        <textarea id="systemPromptInput" class="form-control" rows="3" placeholder="تو یک دستیار هوشمند، رفیق و بسیار کاربردی هستی..."></textarea>
       </div>
-
-      <div class="modal-footer">
-        <button id="saveSettingsBtn" class="btn-primary">ذخیره و اعمال</button>
-      </div>
+      <button class="btn-save" id="saveSettingsBtn">ذخیره تنظیمات</button>
     </div>
   </div>
 
-  <!-- اسکریپت اصلی برنامه -->
   <script src="app.js"></script>
 </body>
 </html>
