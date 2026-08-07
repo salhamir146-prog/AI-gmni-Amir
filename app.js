@@ -1,5 +1,5 @@
 // ==========================================================================
-// ChatGPT Classic — Gemini Edition — app.js (نسخه کامل و بدون خطا)
+// ChatGPT Classic — Gemini Edition — app.js (نسخه متنی و کامل)
 // ==========================================================================
 
 // ---- Model catalog (single source of truth) --------------------------------
@@ -16,26 +16,20 @@ const MODEL_CATALOG = [
   { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'قدرتمندترین مدل Groq' },
   { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', group: '📝 متنی (Groq)', category: 'text', desc: 'سریع و مقرون‌به‌صرفه' },
   { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', group: '📝 متنی (Groq)', category: 'text', desc: 'مدل استدلال عمیق' },
-
-  // ---- Image (Imagen) ----
-  { id: 'imagen-3.0-generate-001', name: 'Imagen 3.0', group: '🎨 تصویر (Imagen)', category: 'imagen', desc: 'کیفیت بالا' },
-  { id: 'imagen-3.0-generate-002', name: 'Imagen 3.0 Ultra', group: '🎨 تصویر (Imagen)', category: 'imagen', desc: 'بهترین کیفیت' },
 ];
 
 const CATEGORY_META = {
-  text:           { label: 'متنی',   icon: 'fa-comment-dots' },
-  'gemini-image': { label: 'تصویر',  icon: 'fa-image' },
-  imagen:         { label: 'تصویر',  icon: 'fa-image' },
-  tts:            { label: 'صوتی',   icon: 'fa-microphone-lines' },
-  music:          { label: 'موسیقی', icon: 'fa-music' },
-  video:          { label: 'ویدیو',  icon: 'fa-clapperboard' },
-  unsupported:    { label: 'تخصصی',  icon: 'fa-triangle-exclamation' },
+  text:        { label: 'متنی',   icon: 'fa-comment-dots' },
+  tts:         { label: 'صوتی',   icon: 'fa-microphone-lines' },
+  music:       { label: 'موسیقی', icon: 'fa-music' },
+  video:       { label: 'ویدیو',  icon: 'fa-clapperboard' },
+  unsupported: { label: 'تخصصی',  icon: 'fa-triangle-exclamation' },
 };
 
 const SUGGESTIONS = [
   'یک ایده برای پروژه برنامه‌نویسی بده',
-  'یک تصویر از یک شهر آینده‌نگر بساز',
   'خلاصه‌ای از یک کتاب معروف بنویس',
+  'یک مقاله کوتاه درباره هوش مصنوعی بفرست',
   'یک متن با صدای Kore تولید کن',
 ];
 
@@ -112,8 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   state.params.maxOutputTokens ??= 2048;
   state.params.topP ??= 0.95;
   state.params.voiceName ??= 'Kore';
-  state.params.imagenAspectRatio ??= '1:1';
-  state.params.imagenSampleCount ??= 1;
 
   applyTheme(state.theme);
 
@@ -226,12 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateModelDescBox() {
     if (!modelDescBox || !modelSelect) return;
     const m = findModel(modelSelect.value);
-    modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category].icon}"></i> ${escapeHtml(m.desc)}`;
+    modelDescBox.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-comment-dots'}"></i> ${escapeHtml(m.desc)}`;
   }
 
   // ---- Category pills ----
-  const categories = ['all', 'text', 'imagen', 'tts', 'music', 'video', 'unsupported'];
-  const categoryLabels = { all: 'همه', text: '📝 متنی', imagen: '🎨 تصویر (Imagen)', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
+  const categories = ['all', 'text', 'tts', 'music', 'video', 'unsupported'];
+  const categoryLabels = { all: 'همه', text: '📝 متنی', tts: '🎵 صوتی', music: '🎶 موسیقی', video: '🎬 ویدیو', unsupported: '🔍 تخصصی' };
   let activeCategory = 'all';
 
   if (categoryPills) {
@@ -282,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dynamicParams.appendChild(row);
     }
 
-    if (m.category === 'text' || m.category === 'gemini-image') {
+    if (m.category === 'text') {
       sliderRow('temperature', 'دما (Temperature)', 0, 2, 0.05, 'مقدار بالاتر = خلاقانه‌تر', v => v.toFixed(2));
       sliderRow('topP', 'Top-P', 0, 1, 0.01, 'کنترل تنوع کلمات', v => v.toFixed(2));
       sliderRow('maxOutputTokens', 'حداکثر توکن خروجی', 256, 8192, 256, 'محدودیت طول پاسخ');
@@ -296,18 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="param-hint">لیست کامل صداها در مستندات Gemini TTS</div>`;
       dynamicParams.appendChild(row);
       row.querySelector('#voiceNameInput').addEventListener('input', (e) => { state.params.voiceName = e.target.value.trim() || 'Kore'; });
-    }
-    if (m.category === 'imagen') {
-      const row = document.createElement('div');
-      row.className = 'param-row';
-      row.innerHTML = `
-        <div class="param-head"><span>نسبت تصویر (Aspect Ratio)</span></div>
-        <select class="form-control" id="aspectRatioSelect">
-          ${['1:1','16:9','9:16','4:3','3:4'].map(r => `<option value="${r}" ${state.params.imagenAspectRatio===r?'selected':''}>${r}</option>`).join('')}
-        </select>`;
-      dynamicParams.appendChild(row);
-      row.querySelector('#aspectRatioSelect').addEventListener('change', (e) => { state.params.imagenAspectRatio = e.target.value; });
-      sliderRow('imagenSampleCount', 'تعداد تصاویر', 1, 4, 1, 'تعداد تصویر در هر درخواست');
     }
     if (m.category === 'music' || m.category === 'video' || m.category === 'unsupported') {
       const note = document.createElement('div');
@@ -350,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateHeaderForModel(modelId) {
     const m = findModel(modelId);
     if (currentModelName) currentModelName.textContent = m.name;
-    if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category].icon}"></i>`;
+    if (modelCatIcon) modelCatIcon.innerHTML = `<i class="fa-solid ${CATEGORY_META[m.category]?.icon || 'fa-comment-dots'}"></i>`;
     if (!modelContextBar) return;
 
     if (m.category === 'unsupported') {
@@ -362,9 +342,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (m.category === 'tts') {
       modelContextBar.style.display = 'flex';
       modelContextBar.innerHTML = `<i class="fa-solid fa-microphone-lines"></i> حالت تبدیل متن به گفتار — صدا: ${escapeHtml(state.params.voiceName)}`;
-    } else if (m.category === 'imagen' || m.category === 'gemini-image') {
-      modelContextBar.style.display = 'flex';
-      modelContextBar.innerHTML = `<i class="fa-solid fa-image"></i> حالت تولید تصویر فعال`;
     } else {
       modelContextBar.style.display = 'none';
     }
@@ -512,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const m = findModel(state.modelId);
       showToast(`مدل به «${m.name}» تغییر کرد`, 'success');
       if (m.category !== prevCategory) {
-        appendSystemNotice(`سویچ به مدل ${m.name} (${CATEGORY_META[m.category].label}) انجام شد.`);
+        appendSystemNotice(`سوییچ به مدل ${m.name} (${CATEGORY_META[m.category]?.label || 'متنی'}) انجام شد.`);
       }
     });
   }
@@ -739,19 +716,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (sendBtn) sendBtn.addEventListener('click', handleSend);
 
-// ==========================================================================
-  // SEND LOGIC (نسخه هوشمند و ایزوله)
+  // ==========================================================================
+  // SEND LOGIC
   // ==========================================================================
   async function handleSend() {
     const text = promptInput ? promptInput.value.trim() : '';
     if (!text && !state.uploadedFile) return;
 
-    // 🎯 گرفتن اسم مدل به‌صورت مستقیم از المنت UI یا state جهت جلوگیری از خطا
     const modelSelectEl = document.getElementById('modelSelect');
-    const activeModelId = (modelSelectEl ? modelSelectEl.value : state.modelId || '').toLowerCase();
-
-    // 🛡️ تشخیص قطعی مدل‌های تصویرساز Imagen
-    const isImagen = activeModelId.includes('imagen');
+    const activeModelId = modelSelectEl ? modelSelectEl.value : state.modelId;
 
     if (welcomeContainer) welcomeContainer.style.display = 'none';
     if (messagesList) messagesList.style.display = 'flex';
@@ -765,23 +738,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (sendBtn) sendBtn.disabled = true;
 
-    const uploadedFileCopy = state.uploadedFile;
     clearUploadedFile();
 
     const { bubble } = appendAssistantTyping();
 
     try {
-      if (isImagen) {
-        // 🎨 ارسال به اندپوینت مخصوص تصویر
-        const modelObj = findModel(activeModelId) || { id: activeModelId };
-        await handleImagenGenerate(modelObj, text || displayText, bubble);
-      } else {
-        // 💬 ارسال به اندپوینت چت متنی
-        const modelObj = findModel(activeModelId) || { id: activeModelId };
-        const userEntry = { role: 'user', parts: [{ text: text || displayText }] };
-        conversationHistory.push(userEntry);
-        await handleGeminiGenerate(modelObj, bubble);
-      }
+      const modelObj = findModel(activeModelId) || { id: activeModelId };
+      const userEntry = { role: 'user', parts: [{ text: text || displayText }] };
+      conversationHistory.push(userEntry);
+      await handleGeminiGenerate(modelObj, bubble);
       autoSaveChat();
     } catch (err) {
       renderError(bubble, err.message);
@@ -791,39 +756,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sendBtn) sendBtn.disabled = false;
   }
 
-// ==========================================================================
-  // IMAGEN GENERATION HANDLER
   // ==========================================================================
-  async function handleImagenGenerate(model, promptText, bubble) {
-    const modelId = model?.id || state.modelId || 'imagen-3.0-generate-001';
+  // GEMINI TEXT GENERATION HANDLER
+  // ==========================================================================
+  async function handleGeminiGenerate(model, bubble) {
+    const modelId = model?.id || state.modelId || 'gemini-3.6-flash';
 
-    const res = await fetch('/api/imagen', {
+    const body = {
+      model: modelId,
+      contents: conversationHistory,
+      systemInstruction: buildSystemInstruction(),
+      generationConfig: {
+        temperature: state.params?.temperature ?? 0.7,
+        topP: state.params?.topP ?? 0.95,
+        maxOutputTokens: state.params?.maxOutputTokens ?? 2048,
+      },
+    };
+
+    const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: modelId,
-        prompt: promptText,
-        aspectRatio: state.params?.imagenAspectRatio || '1:1',
-        sampleCount: state.params?.imagenSampleCount || 1,
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await res.json();
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
+    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'پاسخی دریافت نشد.';
     bubble.classList.remove('typing-dots');
-    if (data.images && data.images.length > 0) {
-      let html = '<div class="generated-images-grid">';
-      data.images.forEach(imgBase64 => {
-        html += `<div class="img-wrapper"><img src="data:image/png;base64,${imgBase64}" class="generated-img" alt="تصویر تولید شده"/><a href="data:image/png;base64,${imgBase64}" download="imagen.png" class="dl-btn" title="دانلود"><i class="fa-solid fa-download"></i></a></div>`;
-      });
-      html += '</div>';
-      bubble.innerHTML = html;
-    } else {
-      bubble.textContent = 'تصویری تولید نشد.';
-    }
+    bubble.innerHTML = renderMarkdown(replyText);
     attachMessageEnhancements(bubble);
+
+    conversationHistory.push({ role: 'model', parts: [{ text: replyText }] });
+
+    const lastUserMsg = conversationHistory[conversationHistory.length - 2]?.parts?.find(p => p.text)?.text || '';
+    if (lastUserMsg && replyText) {
+      updateLongTermMemory(lastUserMsg, replyText);
+    }
   }
+
   // ==========================================================================
   // UI & DOM HELPERS
   // ==========================================================================
@@ -898,7 +869,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderMarkdown(text) {
     if (!text) return '';
-    // تبدیل ساده‌ی کدهای داخل گراو (```)
     let formatted = escapeHtml(text);
     formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
     formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -916,19 +886,19 @@ document.addEventListener('DOMContentLoaded', () => {
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(bubble.innerText);
       showToast('متن کپی شد', 'success');
-    });4
+    });
     const actions = bubble.parentElement.querySelector('.msg-actions') || bubble.parentElement;
     actions.appendChild(copyBtn);
   }
 
- async function testConnection() {
+  async function testConnection() {
     if (connStatus) connStatus.textContent = 'در حال بررسی ارتباط...';
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gemini-1.5-flash', // 🎯 مدل متنی ثابت برای تست
+          model: 'gemini-3.5-flash',
           contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
         }),
       });
@@ -945,6 +915,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // بارگذاری اولیه لیست چت‌های ذخیره‌شده
   loadChatsList();
 });
