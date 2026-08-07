@@ -1,5 +1,5 @@
 // ==========================================================================
-// ChatGPT Classic — Gemini Edition — app.js
+// ChatGPT Classic — Gemini Edition — Full Fixed Functionality app.js
 // ==========================================================================
 
 // توابع جهانی کپی و دانلود کد داخل کادر
@@ -711,13 +711,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ---- رندر مارک‌داون + کادرهای کد ChatGPT ----
   function renderMarkdown(text) {
     if (!text) return '';
-
     const codeBlocks = [];
 
-    // ۱. جداسازی بلوک‌های کد (``` ... ```)
     let processed = text.replace(/```(\w*)\r?\n?([\s\S]*?)```/g, (match, lang, code) => {
       const index = codeBlocks.length;
       const language = lang.trim() || 'code';
@@ -743,20 +740,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return `___CODE_BLOCK_${index}___`;
     });
 
-    // ۲. امن‌سازی متن معمولی
     processed = escapeHtml(processed);
-
-    // ۳. کدهای درون‌خطی `...`
     processed = processed.replace(/`([^`]+)`/g, '<code class="inline-code" dir="ltr">$1</code>');
-
-    // ۴. فرمت متون (بولد، ایتالیک)
     processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-    // ۵. تبدیل خطوط جدید به <br>
     processed = processed.replace(/\n/g, '<br>');
 
-    // ۶. جایگذاری کادرهای کد آماده شده
     codeBlocks.forEach((block, index) => {
       processed = processed.replace(`___CODE_BLOCK_${index}___`, block);
     });
@@ -764,7 +753,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return processed;
   }
 
-  // دکمه کپی کوچک، شیک و جمع‌وجور زیر پاسخ‌ها
   function attachMessageEnhancements(bubble) {
     const messageCol = bubble.closest('.message-col');
     if (!messageCol) return;
